@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "493641618614",
+    "firebase_url": "https://final-year-project-9620e-default-rtdb.firebaseio.com",
+    "project_id": "final-year-project-9620e",
+    "storage_bucket": "final-year-project-9620e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:493641618614:android:73b00518f9ea4a084e0217",
+        "android_client_info": {
+          "package_name": "com.example.globalshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUS4Yh8X-UAgnWLYpxRAJTk2niU9BbEcc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
