@@ -98,7 +98,5 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(error)));
     }
-    // ✅ SUCCESS:
-    // AuthWrapper automatically ModernHomePage load karega
   }
 }

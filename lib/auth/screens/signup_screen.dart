@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+import 'package:email_validator/email_validator.dart';
+
 import '../controllers/auth_controller.dart';
 import 'login_screen.dart';
 
@@ -15,26 +18,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
-  final deviceIdCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final confirmCtrl = TextEditingController();
 
+  String phoneNumber = '';
   bool loading = false;
 
-  /// ✅ ONLY ALLOWED EMAIL DOMAINS
-  bool isAllowedEmail(String email) {
-    final allowedDomains = [
-      'gmail.com',
-      'yahoo.com',
-      'hotmail.com',
-      'outlook.com',
-    ];
-
-    if (!email.contains('@')) return false;
-    final domain = email.split('@').last.toLowerCase();
-    return allowedDomains.contains(domain);
-  }
+  PhoneNumber initialNumber = PhoneNumber(isoCode: 'PK');
 
   @override
   Widget build(BuildContext context) {
@@ -46,33 +36,66 @@ class _SignupScreenState extends State<SignupScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              // 👤 NAME
               _field(nameCtrl, "Full Name"),
-              
-              // 🔐 EMAIL FIELD (RESTRICTED)
+
+              const SizedBox(height: 12),
+
+              // 📧 EMAIL (VALID FORMAT ONLY)
               TextFormField(
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(labelText: "Email"),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return "Required";
-                  if (!isAllowedEmail(v)) {
-                    return "Only Gmail, Yahoo, Hotmail or Outlook allowed";
+                  if (v == null || v.trim().isEmpty) {
+                    return "Email is required";
+                  }
+                  if (!EmailValidator.validate(v.trim())) {
+                    return "Enter a valid email address";
                   }
                   return null;
                 },
               ),
 
-              _field(phoneCtrl, "Contact Number",
-                  keyboard: TextInputType.phone),
+              const SizedBox(height: 16),
 
-              _field(deviceIdCtrl, "Device ID (ESP32 / Sensor ID)"),
+              // 🌍 INTERNATIONAL PHONE INPUT
+              InternationalPhoneNumberInput(
+                initialValue: initialNumber,
+                selectorConfig: const SelectorConfig(
+                  selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
+                  useEmoji: true,
+                ),
+                inputDecoration: const InputDecoration(
+                  labelText: "Contact Number",
+                  border: UnderlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                autoValidateMode: AutovalidateMode.onUserInteraction,
+                onInputChanged: (PhoneNumber number) {
+                  phoneNumber = number.phoneNumber ?? '';
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Contact number required";
+                  }
+                  return null;
+                },
+              ),
 
+              const SizedBox(height: 12),
+
+              // 🔑 PASSWORD
               _password(passCtrl, "Password"),
-              _password(confirmCtrl, "Confirm Password",
-                  confirmWith: passCtrl),
+              _password(
+                confirmCtrl,
+                "Confirm Password",
+                confirmWith: passCtrl,
+              ),
 
               const SizedBox(height: 20),
 
+              // ✅ SIGNUP BUTTON
               ElevatedButton(
                 onPressed: loading ? null : _signup,
                 child: loading
@@ -80,6 +103,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     : const Text("SIGN UP"),
               ),
 
+              // 🔁 LOGIN
               TextButton(
                 onPressed: () {
                   Navigator.pushReplacement(
@@ -90,7 +114,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   );
                 },
                 child: const Text("Already have an account? Login"),
-              )
+              ),
             ],
           ),
         ),
@@ -98,16 +122,12 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _field(
-    TextEditingController ctrl,
-    String label, {
-    TextInputType keyboard = TextInputType.text,
-  }) {
+  Widget _field(TextEditingController ctrl, String label) {
     return TextFormField(
       controller: ctrl,
-      keyboardType: keyboard,
       decoration: InputDecoration(labelText: label),
-      validator: (v) => v!.isEmpty ? "Required" : null,
+      validator: (v) =>
+          v == null || v.trim().isEmpty ? "Required" : null,
     );
   }
 
@@ -135,14 +155,20 @@ class _SignupScreenState extends State<SignupScreen> {
   void _signup() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (phoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter valid phone number")),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
     final error = await _auth.signup(
       name: nameCtrl.text.trim(),
       email: emailCtrl.text.trim(),
-      phone: phoneCtrl.text.trim(),
+      phone: phoneNumber,
       password: passCtrl.text,
-      deviceId: deviceIdCtrl.text.trim(),
     );
 
     setState(() => loading = false);
@@ -154,7 +180,7 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            "Account created.Verification email sent. Please check Inbox or Spam folder.",
+            "Account created. Verification email sent.",
           ),
         ),
       );

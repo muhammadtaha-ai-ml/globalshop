@@ -12,7 +12,6 @@ class AuthController {
     required String email,
     required String phone,
     required String password,
-    required String deviceId,
   }) async {
     try {
       UserCredential userCred =
@@ -21,7 +20,7 @@ class AuthController {
         password: password,
       );
 
-      // 📩 SEND VERIFICATION EMAIL
+      // 📩 Email verification
       await userCred.user!.sendEmailVerification();
 
       AppUser user = AppUser(
@@ -29,7 +28,6 @@ class AuthController {
         name: name,
         email: email,
         phone: phone,
-        deviceId: deviceId,
       );
 
       await _db.child(user.uid).set(user.toMap());
