@@ -20,7 +20,6 @@ class AuthController {
         password: password,
       );
 
-      // 📩 Email verification
       await userCred.user!.sendEmailVerification();
 
       AppUser user = AppUser(
@@ -56,6 +55,18 @@ class AuthController {
         return "Please verify your email first";
       }
 
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  // 🔁 FORGOT PASSWORD
+  Future<String?> resetPassword({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
       return null;
     } on FirebaseAuthException catch (e) {
       return e.message;

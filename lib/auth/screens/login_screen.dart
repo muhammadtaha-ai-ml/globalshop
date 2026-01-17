@@ -33,13 +33,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 "Email",
                 keyboard: TextInputType.emailAddress,
               ),
+
               _password(passCtrl, "Password"),
+
+              // 🔁 FORGOT PASSWORD BUTTON
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _forgotPassword,
+                  child: const Text("Forgot Password?"),
+                ),
+              ),
+
               const SizedBox(height: 20),
 
               ElevatedButton(
                 onPressed: loading ? null : _login,
                 child: loading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
                     : const Text("LOGIN"),
               ),
 
@@ -95,8 +108,55 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => loading = false);
 
     if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
+      _showSnack(error);
     }
+  }
+
+  // 🔁 FORGOT PASSWORD DIALOG
+  void _forgotPassword() {
+    final emailDialogCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Reset Password"),
+        content: TextField(
+          controller: emailDialogCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: "Enter your email",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailDialogCtrl.text.trim();
+
+              if (email.isEmpty) return;
+
+              final error =
+                  await _auth.resetPassword(email: email);
+
+              Navigator.pop(context);
+
+              _showSnack(
+                error ??
+                    "Password reset link sent to your email",
+              );
+            },
+            child: const Text("Send"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 }
