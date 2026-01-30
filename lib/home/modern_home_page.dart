@@ -15,28 +15,16 @@ class ModernHomePage extends StatefulWidget {
 }
 
 class _ModernHomePageState extends State<ModernHomePage> {
-  // 8 Beautiful Pastel Colors for Device Cards
-  final List<List<Color>> cardColors = [
-    [const Color(0xFFE3F2FD), const Color(0xFF90CAF9)], // Light Blue
-    [const Color(0xFFFCE4EC), const Color(0xFFF48FB1)], // Light Pink
-    [const Color(0xFFE8F5E9), const Color(0xFF81C784)], // Light Green
-    [const Color(0xFFFFF3E0), const Color(0xFFFFB74D)], // Light Orange
-    [const Color(0xFFE8EAF6), const Color(0xFF9FA8DA)], // Light Indigo
-    [const Color(0xFFF3E5F5), const Color(0xFFCE93D8)], // Light Purple
-    [const Color(0xFFE0F2F1), const Color(0xFF4DB6AC)], // Light Teal
-    [const Color(0xFFFFF9C4), const Color(0xFFFFF176)], // Light Yellow
-  ];
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: Column(
           children: [
-            // Custom App Bar (Made Smaller)
+            // Custom App Bar
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
               decoration: BoxDecoration(
@@ -168,7 +156,6 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     ),
                     itemBuilder: (context, index) {
                       final device = data.values.elementAt(index);
-                      final colorPair = cardColors[index % cardColors.length];
 
                       return GestureDetector(
                         onTap: () {
@@ -183,111 +170,93 @@ class _ModernHomePageState extends State<ModernHomePage> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: colorPair,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(22),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: colorPair[1].withOpacity(0.35),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Stack(
-                            children: [
-                              // Background Circle
-                              Positioned(
-                                right: -20,
-                                top: -20,
-                                child: Container(
-                                  width: 90,
-                                  height: 90,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Icon at top
+                                Container(
+                                  padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.15),
-                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFF0F4F8),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(
+                                    Icons.devices_rounded,
+                                    color: Color(0xFF5B9BD5),
+                                    size: 34,
                                   ),
                                 ),
-                              ),
-                              // Content
-                              Padding(
-                                padding: const EdgeInsets.all(18),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                const Spacer(),
+                                // Device Name
+                                Text(
+                                  device['deviceName'],
+                                  style: const TextStyle(
+                                    color: Color(0xFF1A365D),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                // Device ID
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0F4F8),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    device['deviceId'],
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                // Active Status
+                                Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.35),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Icon(
-                                        Icons.devices_rounded,
-                                        color: colorPair[1],
-                                        size: 34,
+                                      width: 9,
+                                      height: 9,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
-                                    const Spacer(),
-                                    Text(
-                                      device['deviceName'],
+                                    const SizedBox(width: 7),
+                                    const Text(
+                                      'Active',
                                       style: TextStyle(
-                                        color: Colors.grey[800],
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF64748B),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.4),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        device['deviceId'],
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 9,
-                                          height: 9,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFF10B981),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 7),
-                                        Text(
-                                          'Active',
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
