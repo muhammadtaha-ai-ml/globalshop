@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"final-year-project-9620e","appId":"1:493641618614:android:73b00518f9ea4a084e0217","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"final-year-project-9620e","configurations":{"android":"1:493641618614:android:73b00518f9ea4a084e0217","ios":"1:493641618614:ios:8f98d9bd28e550054e0217","web":"1:493641618614:web:5034f745246096074e0217","windows":"1:493641618614:web:ecf5cd06ea10684a4e0217"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "final-year-project-9620e",
+          "appId": "1:493641618614:android:73b00518f9ea4a084e0217",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "final-year-project-9620e",
+          "configurations": {
+            "android": "1:493641618614:android:73b00518f9ea4a084e0217",
+            "ios": "1:493641618614:ios:8f98d9bd28e550054e0217",
+            "web": "1:493641618614:web:5034f745246096074e0217",
+            "windows": "1:493641618614:web:ecf5cd06ea10684a4e0217"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

@@ -506,96 +506,113 @@ class _ModernHomePageState extends State<ModernHomePage> {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF5B9BD5), Color(0xFF70C1E8)],
-              ),
+Container(
+  decoration: BoxDecoration(
+    gradient: const LinearGradient(
+      colors: [Color(0xFF5B9BD5), Color(0xFF70C1E8)],
+    ),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: ElevatedButton(
+    onPressed: () async {
+      if (nameCtrl.text.isEmpty || idCtrl.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Please fill all fields"),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ElevatedButton(
-              onPressed: () async {
-                if (nameCtrl.text.isEmpty || idCtrl.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text("Please fill all fields"),
-                      backgroundColor: const Color(0xFFEF4444),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      margin: const EdgeInsets.all(16),
-                    ),
-                  );
-                  return;
-                }
-
-                // Check if device already exists
-                final snapshot = await DeviceService.getDevices().once();
-                if (snapshot.snapshot.value != null) {
-                  final Map existingDevices = snapshot.snapshot.value as Map;
-                  bool deviceExists = false;
-                  
-                  for (var device in existingDevices.values) {
-                    if (device['deviceId'] == idCtrl.text.trim()) {
-                      deviceExists = true;
-                      break;
-                    }
-                  }
-
-                  if (deviceExists) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text("This device is already added. You cannot add the same device again."),
-                        backgroundColor: const Color(0xFFEF4444),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        margin: const EdgeInsets.all(16),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
-                }
-
-                await DeviceService.addDevice(
-                  deviceId: idCtrl.text.trim(),
-                  deviceName: nameCtrl.text.trim(),
-                );
-
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text("Device added successfully!"),
-                    backgroundColor: const Color(0xFF10B981),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    margin: const EdgeInsets.all(16),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                "Add Device",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            margin: const EdgeInsets.all(16),
           ),
+        );
+        return;
+      }
+
+      // Check if device already exists
+      final snapshot = await DeviceService.getDevices().once();
+      if (snapshot.snapshot.value != null) {
+        final Map existingDevices = snapshot.snapshot.value as Map;
+        bool deviceExists = false;
+        
+        for (var device in existingDevices.values) {
+          if (device['deviceId'] == idCtrl.text.trim()) {
+            deviceExists = true;
+            break;
+          }
+        }
+
+        if (deviceExists) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("This device is already added. You cannot add the same device again."),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+      }
+
+      // ✅ UPDATED: Now returns error message if any
+      final error = await DeviceService.addDevice(
+        deviceId: idCtrl.text.trim(),
+        deviceName: nameCtrl.text.trim(),
+      );
+
+      Navigator.pop(context);
+
+      // ✅ Show success or error message
+      if (error == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Device added successfully!"),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $error"),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+    child: const Text(
+      "Add Device",
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  ),
+),
         ],
       ),
     );

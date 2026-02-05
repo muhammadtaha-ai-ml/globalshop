@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:globalshop/notifications/fcm_service.dart';
 import 'firebase_options.dart';
 import 'auth/screens/animated_welcome_screen.dart';
-import 'auth/screens/login_screen.dart';
+// import 'auth/screens/login_screen.dart';
 import 'home/modern_home_page.dart';
 
 void main() async {
@@ -11,6 +12,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await FCMService.init();
+  
   runApp(const MyApp());
 }
 
@@ -20,7 +24,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Final Year Project',
+      title: 'GlobalShop',
       debugShowCheckedModeBanner: false,
 
       // 🎨 MODERN LIGHT THEME (Attractive & Clean)
@@ -76,4 +80,4 @@ class AuthWrapper extends StatelessWidget {
       },
     );
   }
-}
+}  
