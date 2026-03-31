@@ -50,7 +50,15 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: "^0.14.1"
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.jpeg"
+  min_sdk_android: 24
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icon/app_icon.jpeg"
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -66,9 +74,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/uploads/
+    - assets/icon/app_icon.jpeg
     - assets/images/
     - assets/images/google_logo.png
     - assets/animations/loader.json
+    - assets/animations/404_error_not_found.json
 
 
   # To add assets to your application, add an assets section, like this:
