@@ -15,63 +15,46 @@ class SetTimeScheduleScreen extends StatefulWidget {
 }
 
 class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final List<TimeOfDay> _times = [];
   bool _loading = true;
-  bool _hasUnsavedChanges = false; // Track if there are unsaved changes
+  bool _hasUnsavedChanges = false;
   late AnimationController _fadeController;
-  late AnimationController _pulseController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadSavedTimes();
 
-    // Fade animation
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 500),
     );
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeInOut,
     );
     _fadeController.forward();
-
-    // Pulse animation for add button
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _pulseAnimation = CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
   Future<void> _loadSavedTimes() async {
     final saved = await ScheduleService.loadUserSchedules(widget.deviceId);
-
     setState(() {
       _times.clear();
       for (final t in saved) {
         final parts = t.split(':');
         if (parts.length == 2) {
-          _times.add(
-            TimeOfDay(
-              hour: int.parse(parts[0]),
-              minute: int.parse(parts[1]),
-            ),
-          );
+          _times.add(TimeOfDay(
+            hour: int.parse(parts[0]),
+            minute: int.parse(parts[1]),
+          ));
         }
       }
       _loading = false;
@@ -79,55 +62,35 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   }
 
   String _getTimePeriod(TimeOfDay time) {
-    final hour = time.hour;
-    if (hour >= 5 && hour < 12) {
-      return 'Morning';
-    } else if (hour >= 12 && hour < 17) {
-      return 'Afternoon';
-    } else if (hour >= 17 && hour < 21) {
-      return 'Evening';
-    } else {
-      return 'Night';
-    }
+    final h = time.hour;
+    if (h >= 5 && h < 12) return 'Morning';
+    if (h >= 12 && h < 17) return 'Afternoon';
+    if (h >= 17 && h < 21) return 'Evening';
+    return 'Night';
   }
 
   IconData _getTimePeriodIcon(TimeOfDay time) {
-    final hour = time.hour;
-    if (hour >= 5 && hour < 12) {
-      return Icons.wb_sunny_rounded;
-    } else if (hour >= 12 && hour < 17) {
-      return Icons.wb_sunny;
-    } else if (hour >= 17 && hour < 21) {
-      return Icons.wb_twilight_rounded;
-    } else {
-      return Icons.nightlight_round;
-    }
+    final h = time.hour;
+    if (h >= 5 && h < 12) return Icons.wb_sunny_rounded;
+    if (h >= 12 && h < 17) return Icons.wb_sunny;
+    if (h >= 17 && h < 21) return Icons.wb_twilight_rounded;
+    return Icons.nightlight_round;
+  }
+
+  Color _getTimePeriodColor(TimeOfDay time) {
+    final h = time.hour;
+    if (h >= 5 && h < 12) return const Color(0xFFFF8F00);
+    if (h >= 12 && h < 17) return const Color(0xFFFF5722);
+    if (h >= 17 && h < 21) return const Color(0xFFE91E63);
+    return const Color(0xFF5C6BC0);
   }
 
   List<Color> _getTimePeriodGradient(TimeOfDay time) {
-    final hour = time.hour;
-    if (hour >= 5 && hour < 12) {
-      return [const Color(0xFFFFA726), const Color(0xFFFFB74D)];
-    } else if (hour >= 12 && hour < 17) {
-      return [const Color(0xFFFF7043), const Color(0xFFFF8A65)];
-    } else if (hour >= 17 && hour < 21) {
-      return [const Color(0xFFEC407A), const Color(0xFFF06292)];
-    } else {
-      return [const Color(0xFF5C6BC0), const Color(0xFF7986CB)];
-    }
-  }
-
-  Color _getTimePeriodBgColor(TimeOfDay time) {
-    final hour = time.hour;
-    if (hour >= 5 && hour < 12) {
-      return const Color(0xFFFFF3E0);
-    } else if (hour >= 12 && hour < 17) {
-      return const Color(0xFFFFE0B2);
-    } else if (hour >= 17 && hour < 21) {
-      return const Color(0xFFFCE4EC);
-    } else {
-      return const Color(0xFFE8EAF6);
-    }
+    final h = time.hour;
+    if (h >= 5 && h < 12) return [const Color(0xFFFF8F00), const Color(0xFFFFB300)];
+    if (h >= 12 && h < 17) return [const Color(0xFFFF5722), const Color(0xFFFF8A65)];
+    if (h >= 17 && h < 21) return [const Color(0xFFE91E63), const Color(0xFFF06292)];
+    return [const Color(0xFF5C6BC0), const Color(0xFF7986CB)];
   }
 
   Future<void> _addTime() async {
@@ -147,12 +110,6 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
               onPrimary: Colors.white,
               surface: Colors.white,
             ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
           ),
           child: child!,
         );
@@ -162,9 +119,9 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     if (picked != null) {
       setState(() {
         _times.add(picked);
-        _hasUnsavedChanges = true; // Mark as unsaved
+        _hasUnsavedChanges = true;
       });
-      _showSnackBar("Time added! Press 'Save Schedule' to confirm", isError: false);
+      _showSnackBar("Time added — press Save to confirm", isError: false);
     }
   }
 
@@ -180,12 +137,6 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
               onPrimary: Colors.white,
               surface: Colors.white,
             ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
           ),
           child: child!,
         );
@@ -195,9 +146,9 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     if (picked != null) {
       setState(() {
         _times[index] = picked;
-        _hasUnsavedChanges = true; // Mark as unsaved
+        _hasUnsavedChanges = true;
       });
-      _showSnackBar("Time updated! Press 'Save Schedule' to confirm", isError: false);
+      _showSnackBar("Time updated — press Save to confirm", isError: false);
     }
   }
 
@@ -217,17 +168,12 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
         deviceId: widget.deviceId,
         times: times,
       );
-
       if (mounted) {
-        setState(() {
-          _hasUnsavedChanges = false; // Reset after successful save
-        });
+        setState(() => _hasUnsavedChanges = false);
         _showSnackBar("Schedule saved successfully!", isError: false);
       }
     } catch (e) {
-      if (mounted) {
-        _showSnackBar("Error: $e", isError: true);
-      }
+      if (mounted) _showSnackBar("Error: $e", isError: true);
     }
   }
 
@@ -235,97 +181,51 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFEF5350), Color(0xFFE53935)],
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFEF5350).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.warning_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: Color(0xFFEF5350), size: 22),
             ),
             const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Delete Schedule?',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
+            const Text(
+              'Delete Schedule?',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
           ],
         ),
         content: const Text(
-          'Are you sure you want to delete this watering schedule?\n\nNote: After deleting, you must press the "Save Schedule" button to permanently save the changes.',
+          'This schedule will be removed. Press Save after to apply changes.',
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF666666),
-            height: 1.5,
-          ),
+              fontSize: 14, color: Color(0xFF666666), height: 1.4),
         ),
         actions: [
-          // Cancel Button
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
             child: const Text(
               'Cancel',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF666666),
-              ),
+                  color: Color(0xFF666666), fontWeight: FontWeight.w600),
             ),
           ),
-          // Delete Button
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEF5350), Color(0xFFE53935)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFEF5350).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF5350),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text(
-                'Delete',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
+            child: const Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -335,9 +235,9 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     if (confirmed == true) {
       setState(() {
         _times.removeAt(index);
-        _hasUnsavedChanges = true; // Mark as unsaved
+        _hasUnsavedChanges = true;
       });
-      _showSnackBar("Schedule removed! Press 'Save Schedule' to confirm", isError: false);
+      _showSnackBar("Removed — press Save to confirm", isError: false);
     }
   }
 
@@ -349,28 +249,24 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             Icon(
               isError ? Icons.error_rounded : Icons.check_circle_rounded,
               color: Colors.white,
+              size: 18,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
           ],
         ),
-        backgroundColor: isError
-            ? const Color(0xFFEF5350)
-            : const Color(0xFF66BB6A),
+        backgroundColor:
+            isError ? const Color(0xFFEF5350) : const Color(0xFF66BB6A),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        margin: const EdgeInsets.all(20),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -385,8 +281,8 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFFF8E1),
-              Color(0xFFFFFBF0),
+              Color(0xFFFFF8F0),
+              Color(0xFFFFFBF5),
               Color(0xFFFFFFFF),
             ],
           ),
@@ -397,30 +293,30 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(30),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF6F00).withOpacity(0.2),
-                            blurRadius: 30,
-                            spreadRadius: 5,
+                            color:
+                                const Color(0xFFFF6F00).withOpacity(0.15),
+                            blurRadius: 24,
+                            spreadRadius: 4,
                           ),
                         ],
                       ),
                       child: const CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFFFF6F00),
-                        ),
+                            Color(0xFFFF6F00)),
                         strokeWidth: 4,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     const Text(
                       'Loading schedules...',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFFF6F00),
                       ),
@@ -431,80 +327,30 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             : SafeArea(
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: IntrinsicHeight(
-                            child: Column(
-                              children: [
-                                // Premium App Bar - STANDARDIZED SIZE (same as device_dashboard_screen.dart)
-                                _buildAppBar(),
-
-                                const SizedBox(height: 12),
-
-                                // Info Card
-                                _buildInfoCard(),
-
-                                const SizedBox(height: 12),
-
-                                // Times List
-                                if (_times.isEmpty)
-                                  Expanded(child: _buildEmptyState())
-                                else
-                                  SizedBox(
-                                    height: constraints.maxHeight * 0.45,
-                                    child: ListView.separated(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                      ),
-                                      itemCount: _times.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 14),
-                                      itemBuilder: (context, index) {
-                                        final t = _times[index];
-                                        return TweenAnimationBuilder<double>(
-                                          tween: Tween(begin: 0.0, end: 1.0),
-                                          duration: Duration(
-                                            milliseconds: 400 + (index * 100),
-                                          ),
-                                          curve: Curves.easeOutBack,
-                                          builder: (context, value, child) {
-                                            final clampedValue = value.clamp(0.0, 1.0);
-                                            return Transform.scale(
-                                              scale: clampedValue,
-                                              child: Opacity(
-                                                opacity: clampedValue,
-                                                child: _buildTimeCard(t, index),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ),
-
-                                const SizedBox(height: 12),
-
-                                // Add Button
-                                _buildAddButton(),
-
-                                const SizedBox(height: 12),
-
-                                // Save Button
-                                _buildSaveButton(),
-
-                                const SizedBox(height: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                  child: Column(
+                    children: [
+                      _buildAppBar(),
+                      _buildInfoBanner(),
+                      Expanded(
+                        child: _times.isEmpty
+                            ? _buildEmptyState()
+                            : ListView.builder(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: _times.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 12),
+                                    child: _buildTimeCard(
+                                        _times[index], index),
+                                  );
+                                },
+                              ),
+                      ),
+                      _buildBottomActions(),
+                    ],
                   ),
                 ),
               ),
@@ -529,13 +375,12 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
       ),
       child: Row(
         children: [
-          // Back Button
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF42A5F5).withOpacity(0.1),
-                  const Color(0xFF1E88E5).withOpacity(0.1),
+                  const Color(0xFFFF6F00).withOpacity(0.08),
+                  const Color(0xFFFF8F00).withOpacity(0.08),
                 ],
               ),
               borderRadius: BorderRadius.circular(14),
@@ -543,7 +388,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             child: IconButton(
               icon: const Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: Color(0xFF1976D2),
+                color: Color(0xFFE65100),
                 size: 20,
               ),
               onPressed: () => Navigator.pop(context),
@@ -551,7 +396,6 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
           ),
           const SizedBox(width: 12),
 
-          // Device Icon
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -575,7 +419,6 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
           ),
           const SizedBox(width: 12),
 
-          // Title
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,26 +433,36 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
                   ),
                 ),
                 const SizedBox(height: 2),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE0B2).withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${_times.length}/5 scheduled',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
+                Text(
+                  '${_times.length}/5 time slots used',
+                  style: TextStyle(
+                    color: _times.length >= 5
+                        ? const Color(0xFFEF5350)
+                        : const Color(0xFFFF8F00),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // Slot counter badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF6F00).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: const Color(0xFFFF6F00).withOpacity(0.25), width: 1),
+            ),
+            child: Text(
+              '${_times.length}/5',
+              style: const TextStyle(
+                color: Color(0xFFFF6F00),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -617,67 +470,46 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF4FC3F7),
-            Color(0xFF29B6F6),
-          ],
+          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4FC3F7).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF4FC3F7).withOpacity(0.3),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.info_outline_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const Icon(Icons.info_outline_rounded,
+                color: Colors.white, size: 20),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Smart Scheduling',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Set up to 5 automatic watering times',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Set up to 5 automatic watering times for your device',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
             ),
           ),
         ],
@@ -691,180 +523,43 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFFFF6F00).withOpacity(0.1),
-                  const Color(0xFFFFE0B2).withOpacity(0.2),
+                  const Color(0xFFFF6F00).withOpacity(0.08),
+                  const Color(0xFFFFE0B2).withOpacity(0.15),
                 ],
               ),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.access_time_rounded,
-              size: 80,
+              size: 64,
               color: Colors.grey[400],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             "No schedules yet",
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               color: Colors.grey[700],
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            "Tap the button below to add your first schedule",
+            "Tap 'Add Time' below to set your first\nautomatic watering schedule",
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: 13,
+              color: Colors.grey[500],
               fontWeight: FontWeight.w500,
+              height: 1.4,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAddButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: AnimatedBuilder(
-        animation: _pulseAnimation,
-        builder: (context, child) {
-          return Container(
-            width: double.infinity,
-            height: 72,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: Color.lerp(
-                  const Color(0xFFFF6F00).withOpacity(0.2),
-                  const Color(0xFFFF6F00).withOpacity(0.4),
-                  _pulseAnimation.value,
-                )!,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF6F00)
-                      .withOpacity(0.1 + _pulseAnimation.value * 0.1),
-                  blurRadius: 20 + _pulseAnimation.value * 5,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(24),
-                onTap: _addTime,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFE0B2), Color(0xFFFFCC80)],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFFFF6F00),
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Text(
-                      'Add Watering Time',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFFFF6F00),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSaveButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Opacity(
-        opacity: _hasUnsavedChanges ? 1.0 : 0.5, // Dim when disabled
-        child: Container(
-          height: 68,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _hasUnsavedChanges
-                  ? [const Color(0xFFFF6F00), const Color(0xFFFF8F00)]
-                  : [Colors.grey[400]!, Colors.grey[500]!], // Grey when disabled
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: _hasUnsavedChanges
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFFF6F00).withOpacity(0.5),
-                      blurRadius: 25,
-                      offset: const Offset(0, 12),
-                    ),
-                  ]
-                : [], // No shadow when disabled
-          ),
-          child: ElevatedButton(
-            onPressed: _hasUnsavedChanges ? _save : null, // Disable when no changes
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              disabledBackgroundColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                const Text(
-                  'Save Schedule',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -872,83 +567,84 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   Widget _buildTimeCard(TimeOfDay t, int index) {
     final period = _getTimePeriod(t);
     final icon = _getTimePeriodIcon(t);
+    final color = _getTimePeriodColor(t);
     final gradient = _getTimePeriodGradient(t);
-    final bgColor = _getTimePeriodBgColor(t);
+    final timeStr =
+        '${t.hour % 12 == 0 ? 12 : t.hour % 12}:${t.minute.toString().padLeft(2, '0')} ${t.hour >= 12 ? 'PM' : 'AM'}';
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: gradient[0].withOpacity(0.2),
-          width: 2,
-        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withOpacity(0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: gradient[0].withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: color.withOpacity(0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Time Period Icon with gradient
+          // Period icon with gradient bg
           Container(
-            width: 75,
-            height: 75,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: gradient),
-              borderRadius: BorderRadius.circular(22),
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: gradient[0].withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
+                  color: color.withOpacity(0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 38,
-            ),
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 14),
 
-          // Time Display
+          // Time + period
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${t.hour % 12 == 0 ? 12 : t.hour % 12}:${t.minute.toString().padLeft(2, '0')} ${t.hour >= 12 ? 'PM' : 'AM'}',
+                  timeStr,
                   style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
                     color: Color(0xFF1A1A1A),
-                    letterSpacing: 0.5,
-                    height: 1.2,
+                    letterSpacing: 0.3,
+                    height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(10),
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     period,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: gradient[0],
-                      letterSpacing: 0.5,
+                      color: color,
                     ),
                   ),
                 ),
@@ -956,58 +652,104 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             ),
           ),
 
-          // Edit Button
+          // Edit button
           Container(
-            width: 50,
-            height: 50,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF42A5F5), Color(0xFF2196F3)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              color: const Color(0xFF2196F3).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: const Icon(
-                Icons.edit_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
+              padding: EdgeInsets.zero,
               onPressed: () => _updateTime(index),
+              icon: const Icon(Icons.edit_rounded,
+                  color: Color(0xFF2196F3), size: 20),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
-          // Delete Button
+          // Delete button
           Container(
-            width: 50,
-            height: 50,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEF5350), Color(0xFFE53935)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFEF5350).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              color: const Color(0xFFEF5350).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: const Icon(
-                Icons.delete_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
+              padding: EdgeInsets.zero,
               onPressed: () => _confirmDelete(index),
+              icon: const Icon(Icons.delete_outline_rounded,
+                  color: Color(0xFFEF5350), size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomActions() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Add Time — outlined with orange
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: _addTime,
+              icon: const Icon(Icons.add_rounded, size: 22),
+              label: const Text(
+                'Add Watering Time',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFFF6F00),
+                side: const BorderSide(
+                    color: Color(0xFFFF6F00), width: 1.8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Save — filled orange, dims when no changes
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _hasUnsavedChanges ? _save : null,
+              icon: const Icon(Icons.check_rounded, size: 22),
+              label: Text(
+                _hasUnsavedChanges ? 'Save Schedule' : 'No Changes',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6F00),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey[200],
+                disabledForegroundColor: Colors.grey[400],
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
             ),
           ),
         ],

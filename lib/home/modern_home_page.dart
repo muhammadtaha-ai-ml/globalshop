@@ -97,6 +97,17 @@ class _ModernHomePageState extends State<ModernHomePage> {
     }
   }
 
+  void _navigateToDevice(Map device) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeviceDashboardScreen(
+          deviceId: device['deviceId'],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -107,7 +118,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Premium App Bar - STANDARDIZED SIZE (same as device_dashboard_screen.dart)
+            // Premium App Bar
             Container(
               margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -147,7 +158,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // Logo
                   Hero(
                     tag: 'app_logo',
@@ -174,7 +185,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // App Name
                   const Text(
                     'GlobalShop',
@@ -186,7 +197,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     ),
                   ),
                   const Spacer(),
-                  
+
                   // Add Device Button
                   Container(
                     decoration: BoxDecoration(
@@ -278,7 +289,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
               ),
             ),
 
-            // Devices Grid - Full Screen
+            // Devices Grid
             Expanded(
               child: StreamBuilder<DatabaseEvent>(
                 stream: DeviceService.getDevices().onValue,
@@ -314,20 +325,31 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     return _emptyState();
                   }
 
-                  final Map data = snapshot.data!.snapshot.value as Map;
+                  final Map allDevices =
+                      snapshot.data!.snapshot.value as Map;
+
+                  // Filter only active devices
+                  final List<MapEntry> activeDevices = allDevices.entries
+                      .where((entry) => entry.value['isActive'] != false)
+                      .toList();
+
+                  if (activeDevices.isEmpty) {
+                    return _emptyState();
+                  }
 
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                     physics: const BouncingScrollPhysics(),
-                    itemCount: data.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    itemCount: activeDevices.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 14,
                       mainAxisSpacing: 14,
                       childAspectRatio: 0.88,
                     ),
                     itemBuilder: (context, index) {
-                      final device = data.values.elementAt(index);
+                      final device = activeDevices[index].value;
                       final gradientIndex = index % deviceGradients.length;
                       final colorIndex = index % deviceIconColors.length;
 
@@ -359,18 +381,10 @@ class _ModernHomePageState extends State<ModernHomePage> {
       tag: 'device_${device['deviceId']}',
       child: Material(
         color: Colors.transparent,
+        // ✅ CHANGE 1: Poori card InkWell se wrap — tap anywhere to navigate
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => DeviceDashboardScreen(
-                  deviceId: device['deviceId'],
-                ),
-              ),
-            );
-          },
+          onTap: () => _navigateToDevice(device),
           child: Container(
             decoration: BoxDecoration(
               gradient: gradient,
@@ -388,28 +402,83 @@ class _ModernHomePageState extends State<ModernHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon Container
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: iconColor.withOpacity(0.25),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                  // Top Row: Icon Container + Menu Button
+                  Row(
+                    children: [
+                      // Icon Container (no separate GestureDetector needed)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: iconColor.withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.devices_rounded,
-                      color: iconColor,
-                      size: 32,
-                    ),
+                        child: Icon(
+                          Icons.devices_rounded,
+                          color: iconColor,
+                          size: 32,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Menu Button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: PopupMenuButton<String>(
+                          // ✅ Stop tap from bubbling to card's InkWell
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showEditDeviceDialog(device);
+                            } else if (value == 'deactivate') {
+                              _showDeactivateConfirmation(device);
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.edit_rounded,
+                                      color: Color(0xFF42A5F5), size: 20),
+                                  const SizedBox(width: 12),
+                                  const Text('Edit Device'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'deactivate',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.delete_rounded,
+                                      color: Color(0xFFEF5350), size: 20),
+                                  const SizedBox(width: 12),
+                                  const Text('Deactivate'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.more_vert_rounded,
+                              color: iconColor,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const Spacer(),
-                  
+
                   // Device Name
                   Text(
                     device['deviceName'],
@@ -423,7 +492,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Device ID Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -447,7 +516,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Status Indicator
                   Row(
                     children: [
@@ -541,7 +610,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // User Name
                     Text(
                       userName,
@@ -553,7 +622,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    
+
                     // User Email
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -577,11 +646,12 @@ class _ModernHomePageState extends State<ModernHomePage> {
                 ),
               ),
             ),
-            
+
             // Menu Items
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
                 children: [
                   _drawerItem(
                     icon: Icons.person_outline_rounded,
@@ -589,7 +659,6 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     color: const Color(0xFF42A5F5),
                     onTap: () {
                       Navigator.pop(context);
-                      // Navigate to profile
                     },
                   ),
                   _drawerItem(
@@ -606,7 +675,6 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     color: const Color(0xFF66BB6A),
                     onTap: () {
                       Navigator.pop(context);
-                      // Navigate to settings
                     },
                   ),
                   _drawerItem(
@@ -615,7 +683,6 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     color: const Color(0xFFFF9800),
                     onTap: () {
                       Navigator.pop(context);
-                      // Navigate to notifications
                     },
                   ),
                   _drawerItem(
@@ -624,11 +691,11 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     color: const Color(0xFF26C6DA),
                     onTap: () {
                       Navigator.pop(context);
-                      // Navigate to help
                     },
                   ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    padding:
+                        EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     child: Divider(height: 1),
                   ),
                   _drawerItem(
@@ -636,7 +703,6 @@ class _ModernHomePageState extends State<ModernHomePage> {
                     title: 'Logout',
                     color: const Color(0xFFEF5350),
                     onTap: () async {
-                      // Show confirmation dialog
                       final shouldLogout = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -647,14 +713,17 @@ class _ModernHomePageState extends State<ModernHomePage> {
                             'Logout',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          content: const Text('Are you sure you want to logout?'),
+                          content: const Text(
+                              'Are you sure you want to logout?'),
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.pop(context, false),
+                              onPressed: () =>
+                                  Navigator.pop(context, false),
                               child: const Text('Cancel'),
                             ),
                             ElevatedButton(
-                              onPressed: () => Navigator.pop(context, true),
+                              onPressed: () =>
+                                  Navigator.pop(context, true),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFEF5350),
                                 shape: RoundedRectangleBorder(
@@ -682,7 +751,7 @@ class _ModernHomePageState extends State<ModernHomePage> {
                 ],
               ),
             ),
-            
+
             // App Version Footer
             Padding(
               padding: const EdgeInsets.all(20),
@@ -716,7 +785,8 @@ class _ModernHomePageState extends State<ModernHomePage> {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -847,6 +917,347 @@ class _ModernHomePageState extends State<ModernHomePage> {
     );
   }
 
+  void _showEditDeviceDialog(Map device) async {
+    final nameCtrl = TextEditingController(text: device['deviceName']);
+    final idCtrl = TextEditingController(text: device['deviceId']);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        backgroundColor: Colors.white,
+        contentPadding: const EdgeInsets.all(24),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.edit_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Text(
+              "Edit Device",
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A1A1A),
+                fontSize: 22,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _dialogTextField(nameCtrl, "Device Name", Icons.label_outline),
+            const SizedBox(height: 16),
+            _dialogTextField(idCtrl, "Device ID", Icons.tag_rounded),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1E88E5).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                if (nameCtrl.text.isEmpty || idCtrl.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text("Please fill all fields"),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFEF5350),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                final error = await DeviceService.updateDevice(
+                  oldDeviceId: device['deviceId'],
+                  newDeviceId: idCtrl.text.trim(),
+                  deviceName: nameCtrl.text.trim(),
+                );
+
+                if (error == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle_outline,
+                              color: Colors.white),
+                          SizedBox(width: 12),
+                          Text("Device updated successfully!"),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF66BB6A),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text("Error: $error")),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFEF5350),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+
+                nameCtrl.dispose();
+                idCtrl.dispose();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+              ),
+              child: const Text(
+                "Update",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeactivateConfirmation(Map device) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF5350).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.warning_rounded,
+                color: Color(0xFFEF5350),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Text(
+              "Deactivate Device",
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A1A1A),
+                fontSize: 22,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Are you sure you want to deactivate this device?",
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF5350).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "Device: ${device['deviceName']} (${device['deviceId']})",
+                style: const TextStyle(
+                  color: Color(0xFFEF5350),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF5350),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF5350).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                final error = await DeviceService.deleteDevice(
+                  deviceId: device['deviceId'],
+                );
+
+                if (error == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle_outline,
+                              color: Colors.white),
+                          SizedBox(width: 12),
+                          Text("Device deactivated successfully!"),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF66BB6A),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text("Error: $error")),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFEF5350),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+              ),
+              child: const Text(
+                "Deactivate",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddDeviceDialog() async {
     final nameCtrl = TextEditingController();
     final idCtrl = TextEditingController();
@@ -899,7 +1310,8 @@ class _ModernHomePageState extends State<ModernHomePage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             child: Text(
               "Cancel",
@@ -947,58 +1359,22 @@ class _ModernHomePageState extends State<ModernHomePage> {
                   return;
                 }
 
-                // Check if device already exists
-                final snapshot = await DeviceService.getDevices().once();
-                if (snapshot.snapshot.value != null) {
-                  final Map existingDevices = snapshot.snapshot.value as Map;
-                  bool deviceExists = false;
-                  
-                  for (var device in existingDevices.values) {
-                    if (device['deviceId'] == idCtrl.text.trim()) {
-                      deviceExists = true;
-                      break;
-                    }
-                  }
-
-                  if (deviceExists) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.white),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text("Device already exists!"),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFFEF5350),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        margin: const EdgeInsets.all(16),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
-                }
+                Navigator.pop(context);
 
                 final error = await DeviceService.addDevice(
                   deviceId: idCtrl.text.trim(),
                   deviceName: nameCtrl.text.trim(),
                 );
 
-                Navigator.pop(context);
-
+                // ✅ CHANGE 2: Handle all result cases including reactivation
                 if (error == null) {
+                  // Check if it was reactivated or newly added
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Row(
                         children: [
-                          Icon(Icons.check_circle_outline, color: Colors.white),
+                          Icon(Icons.check_circle_outline,
+                              color: Colors.white),
                           SizedBox(width: 12),
                           Text("Device added successfully!"),
                         ],
@@ -1011,12 +1387,35 @@ class _ModernHomePageState extends State<ModernHomePage> {
                       margin: const EdgeInsets.all(16),
                     ),
                   );
+                } else if (error == "device_already_active") {
+                  // ✅ Device is already active — inform user
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text("Device already exists and is active!"),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFEF5350),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.white),
+                          const Icon(Icons.error_outline,
+                              color: Colors.white),
                           const SizedBox(width: 12),
                           Expanded(child: Text("Error: $error")),
                         ],
@@ -1038,7 +1437,8 @@ class _ModernHomePageState extends State<ModernHomePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
               ),
               child: const Text(
                 "Add Device",
@@ -1078,7 +1478,8 @@ class _ModernHomePageState extends State<ModernHomePage> {
             color: Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
-          prefixIcon: Icon(icon, color: const Color(0xFF42A5F5), size: 22),
+          prefixIcon:
+              Icon(icon, color: const Color(0xFF42A5F5), size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,

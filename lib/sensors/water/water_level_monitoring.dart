@@ -31,19 +31,16 @@ class _WaterLevelMonitoringScreenState
   void initState() {
     super.initState();
 
-    // Wave animation controller
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat();
 
-    // Bubble animation
     _bubbleController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat();
 
-    // Fade in animation
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -54,7 +51,6 @@ class _WaterLevelMonitoringScreenState
     );
     _fadeController.forward();
 
-    // Scale animation
     _scaleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -65,7 +61,6 @@ class _WaterLevelMonitoringScreenState
     );
     _scaleController.forward();
 
-    // Glow animation
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -86,7 +81,6 @@ class _WaterLevelMonitoringScreenState
     super.dispose();
   }
 
-  // Calculate percentage based on 7 levels (1-7)
   double _calculatePercentage(int waterLevel) {
     if (waterLevel < 1) return 0;
     if (waterLevel > 7) return 100;
@@ -95,29 +89,25 @@ class _WaterLevelMonitoringScreenState
 
   String _getLevelDescription(int waterLevel) {
     switch (waterLevel) {
-      case 1:
-        return "VERY LOW";
-      case 2:
-        return "LOW";
-      case 3:
-        return "MEDIUM LOW";
-      case 4:
-        return "MEDIUM";
-      case 5:
-        return "MEDIUM HIGH";
-      case 6:
-        return "HIGH";
-      case 7:
-        return "VERY HIGH";
-      default:
-        return "Unknown";
+      case 1: return "VERY LOW";
+      case 2: return "LOW";
+      case 3: return "MEDIUM LOW";
+      case 4: return "MEDIUM";
+      case 5: return "MEDIUM HIGH";
+      case 6: return "HIGH";
+      case 7: return "VERY HIGH";
+      default: return "Unknown";
     }
   }
 
   Color _getLevelColor(int waterLevel) {
-    if (waterLevel <= 2) return const Color(0xFFFF6B9D); // Pink-Red
-    if (waterLevel <= 4) return const Color(0xFFFFB74D); // Warm Orange
-    return const Color(0xFF4FC3F7); // Sky Blue
+    return const Color(0xFF4FC3F7);
+  }
+
+  Color _getPercentageColor(int waterLevel) {
+    if (waterLevel <= 2) return const Color(0xFF29B6F6);
+    if (waterLevel <= 4) return const Color(0xFF0288D1);
+    return const Color(0xFF01579B);
   }
 
   IconData _getLevelIcon(int waterLevel) {
@@ -141,17 +131,16 @@ class _WaterLevelMonitoringScreenState
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF0F9FF), // Very light blue
-              Color(0xFFFAFDFF), // Almost white blue
-              Color(0xFFFFFFFF), // Pure white
-              Color(0xFFF5FAFF), // Light blue tint
+              Color(0xFFF0F9FF),
+              Color(0xFFFAFDFF),
+              Color(0xFFFFFFFF),
+              Color(0xFFF5FAFF),
             ],
           ),
         ),
         child: StreamBuilder<DatabaseEvent>(
           stream: logsRef.onValue,
           builder: (context, snapshot) {
-            // Loading state
             if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
               return _buildLoadingState();
             }
@@ -164,6 +153,7 @@ class _WaterLevelMonitoringScreenState
             final double percentage = _calculatePercentage(waterLevel);
             final String levelDescription = _getLevelDescription(waterLevel);
             final Color levelColor = _getLevelColor(waterLevel);
+            final Color percentColor = _getPercentageColor(waterLevel);
             final IconData levelIcon = _getLevelIcon(waterLevel);
 
             return SafeArea(
@@ -171,41 +161,31 @@ class _WaterLevelMonitoringScreenState
                 opacity: _fadeAnimation,
                 child: Column(
                   children: [
-                    // Modern App Bar - STANDARDIZED SIZE (same as device_dashboard_screen.dart)
                     _buildModernAppBar(context),
-
                     Expanded(
                       child: SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
                         child: Column(
                           children: [
-                            const SizedBox(height: 6),
-
-                            // Main Water Tank Display - REDUCED SIZE
+                            const SizedBox(height: 8),
                             ScaleTransition(
                               scale: _scaleAnimation,
                               child: _buildWaterTankCard(
                                 percentage,
                                 levelColor,
+                                percentColor,
                                 waterLevel,
                               ),
                             ),
-
                             const SizedBox(height: 10),
-
-                            // Single Status Card - COMPACT
                             _buildStatusCard(
                               levelDescription,
                               levelColor,
                               levelIcon,
                             ),
-
                             const SizedBox(height: 10),
-
-                            // Date & Time Row - COMPACT & VISIBLE
                             _buildDateTimeRow(time),
-
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
@@ -237,7 +217,6 @@ class _WaterLevelMonitoringScreenState
       ),
       child: Row(
         children: [
-          // Back Button with gradient - COMPACT
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -258,8 +237,6 @@ class _WaterLevelMonitoringScreenState
             ),
           ),
           const SizedBox(width: 12),
-
-          // Water Icon
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -282,8 +259,6 @@ class _WaterLevelMonitoringScreenState
             ),
           ),
           const SizedBox(width: 12),
-
-          // Title - COMPACT
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,8 +284,6 @@ class _WaterLevelMonitoringScreenState
               ],
             ),
           ),
-
-          // Status indicator - COMPACT
           AnimatedBuilder(
             animation: _glowAnimation,
             builder: (context, child) {
@@ -347,25 +320,20 @@ class _WaterLevelMonitoringScreenState
   Widget _buildWaterTankCard(
     double percentage,
     Color levelColor,
+    Color percentColor,
     int waterLevel,
   ) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 22),
-      padding: const EdgeInsets.all(30),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Color(0xFFFAFDFF),
-          ],
+          colors: [Colors.white, Color(0xFFF0F9FF)],
         ),
-        borderRadius: BorderRadius.circular(35),
-        border: Border.all(
-          color: levelColor.withOpacity(0.2),
-          width: 2,
-        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: levelColor.withOpacity(0.2), width: 2),
         boxShadow: [
           BoxShadow(
             color: levelColor.withOpacity(0.15),
@@ -380,37 +348,92 @@ class _WaterLevelMonitoringScreenState
           ),
         ],
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Title
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(width: 10),
-            ],
+          // ── Left: BIGGER tank ──
+          AnimatedBuilder(
+            animation: Listenable.merge([_waveController, _bubbleController]),
+            builder: (context, child) {
+              return CustomPaint(
+                // Increased from Size(130, 240) → Size(160, 290)
+                size: const Size(160, 290),
+                painter: EnhancedWaterTankPainter(
+                  percentage: percentage,
+                  color: levelColor,
+                  wavePhase: _waveController.value,
+                  bubblePhase: _bubbleController.value,
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 16),
 
-          // Animated Water Tank - REDUCED HEIGHT
-          SizedBox(
-            height: 340,
-            child: Stack(
-              alignment: Alignment.center,
+          const SizedBox(width: 16),
+
+          // ── Right: Stats ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Outer glow
+                // Icon
                 AnimatedBuilder(
                   animation: _glowAnimation,
                   builder: (context, child) {
                     return Container(
-                      width: 250,
-                      height: 340,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(35),
+                        color: levelColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: levelColor.withOpacity(0.15 + _glowAnimation.value * 0.1),
-                            blurRadius: 25 + _glowAnimation.value * 8,
-                            spreadRadius: 4,
+                            color: levelColor.withOpacity(
+                                0.2 + _glowAnimation.value * 0.15),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.water_drop_rounded,
+                        size: 32,
+                        color: levelColor,
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  'Water Level',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: percentage),
+                  duration: const Duration(milliseconds: 1500),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    return Text(
+                      '${value.toInt()}%',
+                      style: TextStyle(
+                        fontSize: 58,
+                        fontWeight: FontWeight.w900,
+                        color: percentColor,
+                        letterSpacing: -2,
+                        height: 1,
+                        shadows: [
+                          Shadow(
+                            color: percentColor.withOpacity(0.3),
+                            blurRadius: 12,
                           ),
                         ],
                       ),
@@ -418,98 +441,18 @@ class _WaterLevelMonitoringScreenState
                   },
                 ),
 
-                // Water Tank Visual with bubbles - REDUCED SIZE
-                AnimatedBuilder(
-                  animation: Listenable.merge([_waveController, _bubbleController]),
-                  builder: (context, child) {
-                    return CustomPaint(
-                      size: const Size(200, 280),
-                      painter: EnhancedWaterTankPainter(
-                        percentage: percentage,
-                        color: levelColor,
-                        wavePhase: _waveController.value,
-                        bubblePhase: _bubbleController.value,
-                      ),
-                    );
-                  },
+                const SizedBox(height: 12),
+
+                Container(
+                  height: 1.5,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: levelColor.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
 
-                // Percentage Display only (no status inside)
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Animated icon with glow - COMPACT
-                    AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          padding: const EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: levelColor.withOpacity(0.3 + _glowAnimation.value * 0.2),
-                                blurRadius: 18,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.water_drop_rounded,
-                            size: 50,
-                            color: levelColor,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Percentage with shadow - SLIGHTLY SMALLER
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: percentage),
-                      duration: const Duration(milliseconds: 1500),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, child) {
-                        return Stack(
-                          children: [
-                            // Shadow
-                            Text(
-                              '${value.toInt()}%',
-                              style: TextStyle(
-                                fontSize: 75,
-                                fontWeight: FontWeight.w900,
-                                foreground: Paint()
-                                  ..style = PaintingStyle.stroke
-                                  ..strokeWidth = 7
-                                  ..color = levelColor.withOpacity(0.1),
-                                letterSpacing: -3,
-                                height: 1,
-                              ),
-                            ),
-                            // Main text
-                            Text(
-                              '${value.toInt()}%',
-                              style: TextStyle(
-                                fontSize: 70,
-                                fontWeight: FontWeight.w900,
-                                color: levelColor,
-                                letterSpacing: -3,
-                                height: 1,
-                                shadows: [
-                                  Shadow(
-                                    color: levelColor.withOpacity(0.3),
-                                    blurRadius: 18,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -518,15 +461,14 @@ class _WaterLevelMonitoringScreenState
     );
   }
 
-  // Single Status Card (replacing 3 cards) - COMPACT
   Widget _buildStatusCard(
     String levelDescription,
     Color levelColor,
     IconData levelIcon,
   ) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -536,46 +478,36 @@ class _WaterLevelMonitoringScreenState
             levelColor.withOpacity(0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: levelColor.withOpacity(0.3),
-          width: 2.5,
-        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: levelColor.withOpacity(0.3), width: 2),
         boxShadow: [
           BoxShadow(
-            color: levelColor.withOpacity(0.25),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
+            color: levelColor.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Icon with gradient background - COMPACT
           Container(
-            padding: const EdgeInsets.all(25),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [levelColor, levelColor.withOpacity(0.7)],
               ),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: levelColor.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-            child: Icon(
-              levelIcon,
-              color: Colors.white,
-              size: 34,
-            ),
+            child: Icon(levelIcon, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
-
-          // Status Info - COMPACT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -586,14 +518,13 @@ class _WaterLevelMonitoringScreenState
                     color: Colors.grey[700],
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 Text(
                   levelDescription,
                   style: TextStyle(
-                    fontSize: 23,
+                    fontSize: 21,
                     fontWeight: FontWeight.w900,
                     color: levelColor,
                     letterSpacing: 0.5,
@@ -602,29 +533,22 @@ class _WaterLevelMonitoringScreenState
               ],
             ),
           ),
-
-          // Decorative element - COMPACT
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: levelColor.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.check_circle_rounded,
-              color: levelColor,
-              size: 30,
-            ),
+            child: Icon(Icons.check_circle_rounded, color: levelColor, size: 26),
           ),
         ],
       ),
     );
   }
 
-  // Date & Time Row - COMPACT
   Widget _buildDateTimeRow(String time) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Expanded(
@@ -635,7 +559,7 @@ class _WaterLevelMonitoringScreenState
               gradient: const [Color(0xFFFA709A), Color(0xFFFEE140)],
             ),
           ),
-          const SizedBox(width: 15),
+          const SizedBox(width: 12),
           Expanded(
             child: _buildInfoCard(
               icon: Icons.access_time_rounded,
@@ -676,7 +600,7 @@ class _WaterLevelMonitoringScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.25),
               borderRadius: BorderRadius.circular(10),
@@ -716,7 +640,6 @@ class _WaterLevelMonitoringScreenState
           Stack(
             alignment: Alignment.center,
             children: [
-              // Outer glow
               Container(
                 width: 120,
                 height: 120,
@@ -730,7 +653,6 @@ class _WaterLevelMonitoringScreenState
                   ),
                 ),
               ),
-              // Main container
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
@@ -745,29 +667,20 @@ class _WaterLevelMonitoringScreenState
                   ],
                 ),
                 child: const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4FC3F7)),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Color(0xFF4FC3F7)),
                   strokeWidth: 5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           const Text(
             'Loading Water Data...',
             style: TextStyle(
               color: Color(0xFF4FC3F7),
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Please wait',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -781,15 +694,13 @@ class _WaterLevelMonitoringScreenState
       final parts = time.split(' ')[0].split('-');
       if (parts.length == 3) {
         final months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan','Feb','Mar','Apr','May','Jun',
+          'Jul','Aug','Sep','Oct','Nov','Dec'
         ];
         return "${parts[2]} ${months[int.parse(parts[1]) - 1]} ${parts[0]}";
       }
       return time;
-    } catch (e) {
-      return time;
-    }
+    } catch (e) { return time; }
   }
 
   String _formatTime(String time) {
@@ -806,13 +717,10 @@ class _WaterLevelMonitoringScreenState
         return "$hour:$minute $period";
       }
       return time;
-    } catch (e) {
-      return time;
-    }
+    } catch (e) { return time; }
   }
 }
 
-// Enhanced Water Tank Painter with Wave Effect and Bubbles
 class EnhancedWaterTankPainter extends CustomPainter {
   final double percentage;
   final Color color;
@@ -828,124 +736,93 @@ class EnhancedWaterTankPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Tank outline with gradient border
     final outlinePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
+      ..strokeWidth = 4
       ..shader = LinearGradient(
         colors: [
-          color.withOpacity(0.4),
+          color.withOpacity(0.5),
           color.withOpacity(0.2),
-          color.withOpacity(0.4),
+          color.withOpacity(0.5),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final tankRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(
-        size.width * 0.15,
-        size.height * 0.03,
-        size.width * 0.7,
-        size.height * 0.94,
+        size.width * 0.08,
+        size.height * 0.02,
+        size.width * 0.84,
+        size.height * 0.96,
       ),
-      const Radius.circular(40),
+      const Radius.circular(36),
     );
     canvas.drawRRect(tankRect, outlinePaint);
 
-    // Draw background pattern
     final bgPaint = Paint()
-      ..color = color.withOpacity(0.03)
+      ..color = color.withOpacity(0.04)
       ..style = PaintingStyle.fill;
     canvas.drawRRect(tankRect, bgPaint);
 
-    // Water fill with enhanced wave effect
     if (percentage > 0) {
-      final fillHeight = (size.height * 0.94) * (percentage / 100);
-      final waterTop = size.height * 0.97 - fillHeight;
+      final fillHeight = (size.height * 0.96) * (percentage / 100);
+      final waterTop = size.height * 0.98 - fillHeight;
 
-      // Create enhanced wave path
       final wavePath = Path();
-      wavePath.moveTo(size.width * 0.15, size.height * 0.97);
-      wavePath.lineTo(size.width * 0.15, waterTop + 12);
+      wavePath.moveTo(size.width * 0.08, size.height * 0.98);
+      wavePath.lineTo(size.width * 0.08, waterTop + 10);
 
-      // Draw double wave for more realistic effect
-      for (double i = 0; i <= size.width * 0.7; i++) {
-        final x = size.width * 0.15 + i;
-        final wave1 = math.sin((i / 18) + (wavePhase * 2 * math.pi)) * 10;
-        final wave2 = math.sin((i / 25) - (wavePhase * 2 * math.pi)) * 6;
-        final y = waterTop + 12 + wave1 + wave2;
+      for (double i = 0; i <= size.width * 0.84; i++) {
+        final x = size.width * 0.08 + i;
+        final wave1 = math.sin((i / 15) + (wavePhase * 2 * math.pi)) * 8;
+        final wave2 = math.sin((i / 22) - (wavePhase * 2 * math.pi)) * 5;
+        final y = waterTop + 10 + wave1 + wave2;
         wavePath.lineTo(x, y);
       }
 
-      wavePath.lineTo(size.width * 0.85, size.height * 0.97);
+      wavePath.lineTo(size.width * 0.92, size.height * 0.98);
       wavePath.close();
 
-      // Clip to tank shape
       canvas.save();
       canvas.clipRRect(tankRect);
 
-      // Fill with enhanced gradient
       final fillPaint = Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             color.withOpacity(0.3),
-            color.withOpacity(0.5),
-            color.withOpacity(0.7),
+            color.withOpacity(0.55),
+            color.withOpacity(0.75),
           ],
           stops: const [0.0, 0.5, 1.0],
         ).createShader(Rect.fromLTWH(0, waterTop, size.width, fillHeight));
 
       canvas.drawPath(wavePath, fillPaint);
 
-      // Draw bubbles
       if (percentage > 15) {
         _drawBubbles(canvas, size, waterTop, fillHeight);
       }
 
-      // Add enhanced shimmer effect
       final shimmerPaint = Paint()
         ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.4),
-            Colors.transparent,
-            Colors.white.withOpacity(0.3),
+            Colors.white.withOpacity(0.35),
             Colors.transparent,
             Colors.white.withOpacity(0.2),
+            Colors.transparent,
           ],
-          stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+          stops: const [0.0, 0.35, 0.65, 1.0],
         ).createShader(tankRect.outerRect);
 
       canvas.drawRect(
-        Rect.fromLTWH(
-          size.width * 0.15,
-          waterTop,
-          size.width * 0.7,
-          fillHeight,
-        ),
+        Rect.fromLTWH(size.width * 0.08, waterTop, size.width * 0.84, fillHeight),
         shimmerPaint,
       );
 
       canvas.restore();
     }
-
-    // Add inner shadow effect
-    final shadowPaint = Paint()
-      ..shader = RadialGradient(
-        center: Alignment.center,
-        radius: 0.8,
-        colors: [
-          Colors.transparent,
-          Colors.black.withOpacity(0.03),
-        ],
-      ).createShader(tankRect.outerRect);
-
-    canvas.save();
-    canvas.clipRRect(tankRect);
-    canvas.drawRect(tankRect.outerRect, shadowPaint);
-    canvas.restore();
   }
 
   void _drawBubbles(Canvas canvas, Size size, double waterTop, double fillHeight) {
@@ -953,28 +830,22 @@ class EnhancedWaterTankPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.4)
       ..style = PaintingStyle.fill;
 
-    // Draw multiple animated bubbles
     final bubbles = [
-      {'x': 0.25, 'y': 0.7, 'size': 6.0, 'speed': 1.0},
-      {'x': 0.45, 'y': 0.5, 'size': 4.0, 'speed': 1.5},
-      {'x': 0.65, 'y': 0.8, 'size': 5.0, 'speed': 0.8},
-      {'x': 0.35, 'y': 0.3, 'size': 3.5, 'speed': 1.2},
-      {'x': 0.55, 'y': 0.6, 'size': 4.5, 'speed': 1.1},
+      {'x': 0.25, 'y': 0.7, 'size': 5.0, 'speed': 1.0},
+      {'x': 0.45, 'y': 0.5, 'size': 3.5, 'speed': 1.5},
+      {'x': 0.65, 'y': 0.8, 'size': 4.0, 'speed': 0.8},
+      {'x': 0.35, 'y': 0.3, 'size': 3.0, 'speed': 1.2},
+      {'x': 0.55, 'y': 0.6, 'size': 4.0, 'speed': 1.1},
     ];
 
     for (var bubble in bubbles) {
-      final x = size.width * 0.15 + (size.width * 0.7 * bubble['x']!);
+      final x = size.width * 0.08 + (size.width * 0.84 * bubble['x']!);
       final bubbleY = waterTop + (fillHeight * bubble['y']!);
-      final animatedY = bubbleY - (bubblePhase * bubble['speed']! * fillHeight * 0.3) % fillHeight;
-      
+      final animatedY = bubbleY -
+          (bubblePhase * bubble['speed']! * fillHeight * 0.3) % fillHeight;
+
       if (animatedY > waterTop && animatedY < waterTop + fillHeight) {
-        canvas.drawCircle(
-          Offset(x, animatedY),
-          bubble['size']!,
-          bubblePaint,
-        );
-        
-        // Add bubble highlight
+        canvas.drawCircle(Offset(x, animatedY), bubble['size']!, bubblePaint);
         final highlightPaint = Paint()
           ..color = Colors.white.withOpacity(0.7)
           ..style = PaintingStyle.fill;

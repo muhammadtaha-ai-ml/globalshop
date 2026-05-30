@@ -56,6 +56,7 @@ class AuthController {
         return "Please verify your email first";
       }
 
+      // ✅ Save token to ALL devices on every login
       await saveFCMTokenToDevices(cred.user!.uid);
       return null;
     } on FirebaseAuthException catch (e) {
@@ -103,100 +104,128 @@ class AuthController {
     }
   }
 
-  /// 🔔 SAVE FCM TOKEN TO ALL DEVICES
+  /// 🔔 SAVE FCM TOKEN TO ALL LINKED DEVICES
+  /// Called on login — updates token for every device user has
   Future<void> saveFCMTokenToDevices(String uid) async {
     try {
-      final token = await FCMService.getToken();
+      print("🔄 saveFCMTokenToDevices: Starting for uid=$uid");
+
+      // ✅ Get token with retry
+      String? token = await FCMService.getToken();
       if (token == null || token.isEmpty) {
-        print("⚠️ FCM token is null or empty, skipping save");
+        print("⚠️ Token null on first try, refreshing...");
+        await Future.delayed(const Duration(seconds: 1));
+        token = await FCMService.refreshAndGetToken();
+      }
+
+      if (token == null || token.isEmpty) {
+        print("❌ saveFCMTokenToDevices: Could not get FCM token");
         return;
       }
 
-      await _db.child(uid).child('fcmToken').set(token);
-      print("✅ Token saved in user record: users/$uid/fcmToken");
+      print("✅ Token obtained: ${token.substring(0, 20)}...");
 
+      // Save token in user record
+      await _db.child(uid).child('fcmToken').set(token);
+      print("✅ Token saved: users/$uid/fcmToken");
+
+      // Get all devices linked to this user
       final devicesSnap = await _db.child(uid).child('devices').get();
-      if (!devicesSnap.exists) {
+      if (!devicesSnap.exists || devicesSnap.value == null) {
         print("ℹ️ No devices linked to user: $uid");
         return;
       }
 
-      final devicesData = devicesSnap.value;
-      if (devicesData == null) return;
-
       final Map<dynamic, dynamic> devices =
-          devicesData as Map<dynamic, dynamic>;
+          devicesSnap.value as Map<dynamic, dynamic>;
 
-      for (final deviceId in devices.keys) {
+      int savedCount = 0;
+      for (final entry in devices.entries) {
+        final deviceId = entry.key.toString();
+        final deviceData = entry.value;
+
+        // Skip inactive devices
+        if (deviceData is Map && deviceData['isActive'] == false) {
+          print("⏭️ Skipping inactive device: $deviceId");
+          continue;
+        }
+
+        // ✅ Save token under global devices/{deviceId}/tokens/{uid}
+        // This is where Cloud Functions read from
         await _devicesDb
-            .child(deviceId.toString())
+            .child(deviceId)
             .child('tokens')
             .child(uid)
             .set(token);
 
+        savedCount++;
         print("✅ Token saved: devices/$deviceId/tokens/$uid");
       }
+
+      print("✅ saveFCMTokenToDevices: Done. Saved for $savedCount device(s)");
     } catch (e) {
-      print("❌ Error saving FCM token: $e");
+      print("❌ Error in saveFCMTokenToDevices: $e");
     }
   }
 
-  /// 📱 LINK A DEVICE TO THE CURRENT USER
-  ///
-  /// ✅✅ FIXED: Doesn't overwrite device info
+  /// 📱 LINK A DEVICE & SAVE FCM TOKEN
+  /// Called when user adds a new device
   Future<String?> linkDevice({required String deviceId}) async {
     try {
       final uid = _auth.currentUser?.uid;
       if (uid == null) return "User not logged in";
 
-      print("🔄 Starting device link process for: $deviceId");
+      print("🔄 linkDevice: Linking device $deviceId for uid=$uid");
 
-      // 1️⃣ Check if device exists in global devices database
+      // ✅ FIXED: Check global devices node (not user's list)
+      // DeviceService already saved to devices/{deviceId} before calling this
       final deviceSnap = await _devicesDb.child(deviceId).get();
       if (!deviceSnap.exists) {
-        return "Device not found. Please check the device ID.";
+        // ✅ This shouldn't happen since DeviceService saves first
+        // but if it does, we create the entry
+        print("⚠️ linkDevice: Device not in global node, creating...");
+        await _devicesDb.child(deviceId).update({
+          'deviceId': deviceId,
+          'isActive': true,
+        });
       }
 
-      // 2️⃣ ✅ Verify device info exists (already saved by DeviceService)
-      final userDeviceSnap = await _db.child(uid).child('devices').child(deviceId).get();
-      if (!userDeviceSnap.exists) {
-        print("⚠️ Warning: Device info not found in user record");
-      } else {
-        print("✅ Device already linked to user: users/$uid/devices/$deviceId");
-      }
-
-      // 3️⃣ ✅ Get FCM token
-      print("🔄 Fetching FCM token...");
+      // ✅ Get FCM token with retry logic
+      print("🔄 linkDevice: Getting FCM token...");
       String? token = await FCMService.getToken();
 
       if (token == null || token.isEmpty) {
-        print("⚠️ First attempt: Token is null, trying to refresh...");
-        await Future.delayed(const Duration(milliseconds: 500));
+        print("⚠️ linkDevice: Token null, waiting 1s and retrying...");
+        await Future.delayed(const Duration(seconds: 1));
+        token = await FCMService.getToken();
+      }
+
+      if (token == null || token.isEmpty) {
+        print("⚠️ linkDevice: Still null, forcing refresh...");
         token = await FCMService.refreshAndGetToken();
       }
 
       if (token == null || token.isEmpty) {
-        print("❌ ERROR: FCM token is STILL null after refresh attempt!");
-        return "Device linked but notifications may not work. Please restart the app.";
+        print("❌ linkDevice: Could not get FCM token after all retries");
+        // ✅ Don't fail completely — device is added, token will update on next login
+        return null;
       }
 
-      print("✅ Token fetched successfully: ${token.substring(0, 20)}...");
+      print("✅ linkDevice: Token ready: ${token.substring(0, 20)}...");
 
-      // 4️⃣ ✅ Save token IMMEDIATELY
+      // ✅ Save token under global devices/{deviceId}/tokens/{uid}
       await _devicesDb
           .child(deviceId)
           .child('tokens')
           .child(uid)
           .set(token);
+      print("✅ linkDevice: Token saved at devices/$deviceId/tokens/$uid");
 
-      print("✅✅ TOKEN SAVED IMMEDIATELY: devices/$deviceId/tokens/$uid");
-      print("   Full token length: ${token.length} characters");
-
-      // 5️⃣ Update user's main fcmToken
+      // ✅ Also update user's fcmToken record
       await _db.child(uid).child('fcmToken').set(token);
-      print("✅ Token also saved in user record: users/$uid/fcmToken");
+      print("✅ linkDevice: Token saved at users/$uid/fcmToken");
 
-      return null;
+      return null; // Success
     } catch (e) {
       print("❌ CRITICAL ERROR in linkDevice: $e");
       return e.toString();
@@ -209,7 +238,10 @@ class AuthController {
       final uid = _auth.currentUser?.uid;
       if (uid == null) return "User not logged in";
 
+      // Remove from user's list
       await _db.child(uid).child('devices').child(deviceId).remove();
+
+      // Remove token from global devices
       await _devicesDb.child(deviceId).child('tokens').child(uid).remove();
 
       print("✅ Device unlinked: $deviceId");

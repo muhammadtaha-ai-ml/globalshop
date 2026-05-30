@@ -7,51 +7,78 @@ class FCMService {
   static final _messaging = FirebaseMessaging.instance;
   static final _local = FlutterLocalNotificationsPlugin();
 
-  /// INIT FCM
+  // ✅ Android notification channel — must match Cloud Functions channelId
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+    'water_alerts',      // id — must match index.js
+    'Water Alerts',      // name
+    description: 'Water level and gas sensor notifications',
+    importance: Importance.max, // ✅ max instead of high
+    playSound: true,
+    enableVibration: true,
+  );
+
+  /// INIT FCM — call once in main()
   static Future<void> init() async {
-    // Permission
-    await _messaging.requestPermission(
+    // 1️⃣ Request permission
+    final settings = await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    print("🔔 FCM Permission: ${settings.authorizationStatus}");
+
+    // 2️⃣ Create Android notification channel
+    try {
+      await _local
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_channel);
+      print("✅ Notification channel created: water_alerts");
+    } catch (e) {
+      print("⚠️ Error creating notification channel: $e");
+    }
+
+    // 3️⃣ Initialize local notifications plugin
+    const InitializationSettings settings2 = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      ),
+    );
+    await _local.initialize(settings2);
+    print("✅ Local notifications initialized");
+
+    // 4️⃣ ✅ Set foreground notification presentation (iOS)
+    await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Android Channel
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'water_alerts',
-      'Water Alerts',
-      description: 'Water level notifications',
-      importance: Importance.high,
-    );
-
-    // ✅ FIXED: Create notification channel properly
-    try {
-      await _local
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
-    } catch (e) {
-      print("⚠️ Error creating notification channel: $e");
-    }
-
-    // Initialize local notifications
-    const InitializationSettings settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    );
-
-    await _local.initialize(settings);
-
-    // ✅ Foreground listener
-    FirebaseMessaging.onMessage.listen((message) {
+    // 5️⃣ Foreground message listener
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 Foreground message received: ${message.notification?.title}");
       _showLocal(message);
     });
 
-    // ✅ Token refresh listener
+    // 6️⃣ Background/terminated message handler
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("📩 App opened from notification: ${message.notification?.title}");
+    });
+
+    // 7️⃣ Token refresh listener — auto-update all devices
     _messaging.onTokenRefresh.listen((newToken) async {
+      print("🔄 FCM Token refreshed: ${newToken.substring(0, 20)}...");
       await _updateTokenInDatabase(newToken);
     });
+
+    print("✅ FCMService.init() complete");
   }
 
-  /// Show notification in foreground
+  /// Show notification when app is in foreground
   static Future<void> _showLocal(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
@@ -62,10 +89,18 @@ class FCMService {
       notification.body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'water_alerts',
+          'water_alerts',   // ✅ must match channel id above
           'Water Alerts',
-          importance: Importance.high,
+          importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
     );
@@ -75,10 +110,10 @@ class FCMService {
   static Future<String?> getToken() async {
     try {
       final token = await _messaging.getToken();
-      if (token != null) {
-        print("📱 FCM getToken() returned: ${token.substring(0, 20)}...");
+      if (token != null && token.isNotEmpty) {
+        print("📱 FCM Token: ${token.substring(0, 20)}...");
       } else {
-        print("📱 FCM getToken() returned: NULL");
+        print("📱 FCM Token: NULL");
       }
       return token;
     } catch (e) {
@@ -87,26 +122,21 @@ class FCMService {
     }
   }
 
-  /// ✅ NEW METHOD: Force refresh token and get it
+  /// Force refresh token (delete old + get new)
   static Future<String?> refreshAndGetToken() async {
     try {
       print("🔄 Forcing FCM token refresh...");
-      
-      // Delete old token first
       await _messaging.deleteToken();
       print("   Old token deleted");
-      
-      // Wait a moment
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Get new token
+
+      await Future.delayed(const Duration(milliseconds: 800));
+
       final newToken = await _messaging.getToken();
-      if (newToken != null) {
-        print("   New token received: ${newToken.substring(0, 20)}...");
+      if (newToken != null && newToken.isNotEmpty) {
+        print("   New token: ${newToken.substring(0, 20)}...");
       } else {
         print("   New token: NULL");
       }
-      
       return newToken;
     } catch (e) {
       print("❌ Error refreshing FCM token: $e");
@@ -114,50 +144,54 @@ class FCMService {
     }
   }
 
-  /// Update token in database when it refreshes
+  /// Auto-update token in DB when FCM refreshes it
   static Future<void> _updateTokenInDatabase(String newToken) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print("⚠️ Token refresh: User not logged in");
+        print("⚠️ Token refresh: No user logged in");
         return;
       }
 
       final uid = user.uid;
       final db = FirebaseDatabase.instance.ref();
 
-      // 1️⃣ Update token in user record
+      // Update in user record
       await db.child('users').child(uid).child('fcmToken').set(newToken);
+      print("✅ Token refreshed: users/$uid/fcmToken");
 
-      // 2️⃣ Get user's linked devices
+      // Get user's devices
       final devicesSnap =
           await db.child('users').child(uid).child('devices').get();
-      
-      if (!devicesSnap.exists) {
-        print("ℹ️ Token refresh: No devices linked to user");
+      if (!devicesSnap.exists || devicesSnap.value == null) {
+        print("ℹ️ Token refresh: No devices for user");
         return;
       }
 
-      final devicesData = devicesSnap.value;
-      if (devicesData == null) return;
+      final Map<dynamic, dynamic> devices =
+          devicesSnap.value as Map<dynamic, dynamic>;
 
-      final Map<dynamic, dynamic> devices = devicesData as Map<dynamic, dynamic>;
+      for (final entry in devices.entries) {
+        final deviceId = entry.key.toString();
+        final deviceData = entry.value;
 
-      // 3️⃣ Update token in each linked device
-      for (final deviceId in devices.keys) {
+        // Skip inactive
+        if (deviceData is Map && deviceData['isActive'] == false) continue;
+
+        // ✅ Update token in global devices node
         await db
             .child('devices')
-            .child(deviceId.toString())
+            .child(deviceId)
             .child('tokens')
             .child(uid)
             .set(newToken);
-        
+
         print("✅ Token refreshed: devices/$deviceId/tokens/$uid");
       }
 
-      print("✅ Token refresh complete for ${devices.length} device(s)");
+      print("✅ Token auto-refresh complete for ${devices.length} device(s)");
     } catch (e) {
-      print("❌ Error updating refreshed token: $e");
+      print("❌ Error in _updateTokenInDatabase: $e");
     }
   }
 }
