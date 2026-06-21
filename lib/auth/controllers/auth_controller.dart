@@ -77,6 +77,14 @@ class AuthController {
         return "Google sign-in cancelled";
       }
 
+      // 🛑 PRE-CHECK: Ensure the user has actually signed up in our app first.
+      // This prevents Firebase Auth from auto-creating a user and instantly logging them in.
+      final query = await _db.orderByChild('email').equalTo(googleUser.email).once();
+      if (!query.snapshot.exists) {
+        await googleSignIn.signOut();
+        return "This Google account is not registered. Please sign up first.";
+      }
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
@@ -88,15 +96,16 @@ class AuthController {
       final UserCredential userCred =
           await _auth.signInWithCredential(credential);
 
-      final uid = userCred.user!.uid;
-
-      final snapshot = await _db.child(uid).get();
-      if (!snapshot.exists) {
+      // 🛑 VERIFICATION CHECK
+      if (!userCred.user!.emailVerified) {
         await _auth.signOut();
         await googleSignIn.signOut();
-        return "This Google account is not registered. Please sign up first.";
+        return "Please verify your email first before logging in.";
       }
 
+      final uid = userCred.user!.uid;
+
+      // We already checked the DB above, no need to check again.
       await saveFCMTokenToDevices(uid);
       return null;
     } catch (e) {

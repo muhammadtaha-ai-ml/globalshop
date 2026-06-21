@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import '../../devices/schedule_service.dart';
 
 class SetTimeScheduleScreen extends StatefulWidget {
@@ -117,6 +119,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     );
 
     if (picked != null) {
+      HapticFeedback.mediumImpact();
       setState(() {
         _times.add(picked);
         _hasUnsavedChanges = true;
@@ -144,6 +147,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     );
 
     if (picked != null) {
+      HapticFeedback.lightImpact();
       setState(() {
         _times[index] = picked;
         _hasUnsavedChanges = true;
@@ -169,6 +173,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
         times: times,
       );
       if (mounted) {
+        HapticFeedback.selectionClick();
         setState(() => _hasUnsavedChanges = false);
         _showSnackBar("Schedule saved successfully!", isError: false);
       }
@@ -180,59 +185,71 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   Future<void> _confirmDelete(int index) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF5350).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E2030) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF5350).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    color: Color(0xFFEF5350), size: 22),
               ),
-              child: const Icon(Icons.delete_outline_rounded,
-                  color: Color(0xFFEF5350), size: 22),
+              const SizedBox(width: 12),
+              Text(
+                'Delete Schedule?',
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'This schedule will be removed. Press Save after to apply changes.',
+            style: TextStyle(
+                fontSize: 14, 
+                color: isDark ? Colors.grey[400] : const Color(0xFF666666), 
+                height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                    color: isDark ? Colors.grey[400] : const Color(0xFF666666), 
+                    fontWeight: FontWeight.w600),
+              ),
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Delete Schedule?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF5350),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
-        ),
-        content: const Text(
-          'This schedule will be removed. Press Save after to apply changes.',
-          style: TextStyle(
-              fontSize: 14, color: Color(0xFF666666), height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                  color: Color(0xFF666666), fontWeight: FontWeight.w600),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF5350),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed == true) {
+      HapticFeedback.heavyImpact();
       setState(() {
         _times.removeAt(index);
         _hasUnsavedChanges = true;
@@ -274,17 +291,22 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F1016) : const Color(0xFFFFF8F0),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFF8F0),
-              Color(0xFFFFFBF5),
-              Color(0xFFFFFFFF),
-            ],
+            colors: isDark
+                ? [const Color(0xFF0F1016), const Color(0xFF15161F)]
+                : [
+                    const Color(0xFFFFF8F0),
+                    const Color(0xFFFFFBF5),
+                    const Color(0xFFFFFFFF),
+                  ],
           ),
         ),
         child: _loading
@@ -292,25 +314,16 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFFFF6F00).withOpacity(0.15),
-                            blurRadius: 24,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFFFF6F00)),
-                        strokeWidth: 4,
-                      ),
+                    Lottie.asset(
+                      'assets/animations/loader.json',
+                      width: 160,
+                      height: 160,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const CircularProgressIndicator(
+                          color: Color(0xFFFF6F00),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                     const Text(
@@ -359,15 +372,19 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   }
 
   Widget _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E2030) : Colors.white;
+    final textThemeColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -379,8 +396,8 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFFFF6F00).withOpacity(0.08),
-                  const Color(0xFFFF8F00).withOpacity(0.08),
+                  const Color(0xFFFF6F00).withOpacity(isDark ? 0.16 : 0.08),
+                  const Color(0xFFFF8F00).withOpacity(isDark ? 0.16 : 0.08),
                 ],
               ),
               borderRadius: BorderRadius.circular(14),
@@ -423,10 +440,10 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Watering Schedule',
                   style: TextStyle(
-                    color: Color(0xFF1A1A1A),
+                    color: textThemeColor,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
@@ -518,6 +535,8 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -528,7 +547,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
               gradient: LinearGradient(
                 colors: [
                   const Color(0xFFFF6F00).withOpacity(0.08),
-                  const Color(0xFFFFE0B2).withOpacity(0.15),
+                  isDark ? const Color(0xFFFFE0B2).withOpacity(0.05) : const Color(0xFFFFE0B2).withOpacity(0.15),
                 ],
               ),
               shape: BoxShape.circle,
@@ -536,7 +555,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             child: Icon(
               Icons.access_time_rounded,
               size: 64,
-              color: Colors.grey[400],
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
             ),
           ),
           const SizedBox(height: 20),
@@ -544,7 +563,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             "No schedules yet",
             style: TextStyle(
               fontSize: 20,
-              color: Colors.grey[700],
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -553,7 +572,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             "Tap 'Add Time' below to set your first\nautomatic watering schedule",
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey[500],
+              color: isDark ? Colors.grey[400] : Colors.grey[500],
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
@@ -565,6 +584,10 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   }
 
   Widget _buildTimeCard(TimeOfDay t, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E2030) : Colors.white;
+    final textThemeColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+
     final period = _getTimePeriod(t);
     final icon = _getTimePeriodIcon(t);
     final color = _getTimePeriodColor(t);
@@ -575,17 +598,17 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+        border: Border.all(color: color.withOpacity(isDark ? 0.3 : 0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withOpacity(isDark ? 0.03 : 0.1),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -623,10 +646,10 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
               children: [
                 Text(
                   timeStr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A1A1A),
+                    color: textThemeColor,
                     letterSpacing: 0.3,
                     height: 1.1,
                   ),
@@ -657,7 +680,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF2196F3).withOpacity(0.08),
+              color: const Color(0xFF2196F3).withOpacity(isDark ? 0.16 : 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -674,7 +697,7 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFEF5350).withOpacity(0.08),
+              color: const Color(0xFFEF5350).withOpacity(isDark ? 0.16 : 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -690,13 +713,16 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
   }
 
   Widget _buildBottomActions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E2030) : Colors.white;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -744,8 +770,8 @@ class _SetTimeScheduleScreenState extends State<SetTimeScheduleScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6F00),
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.grey[200],
-                disabledForegroundColor: Colors.grey[400],
+                disabledBackgroundColor: isDark ? const Color(0xFF15161F) : Colors.grey[200],
+                disabledForegroundColor: isDark ? Colors.grey[600] : Colors.grey[400],
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),

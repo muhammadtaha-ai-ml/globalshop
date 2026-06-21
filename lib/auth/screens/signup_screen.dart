@@ -30,8 +30,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0A0B10) : Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -45,13 +47,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 40),
                     
                     // Title Section
-                    const Text(
+                    Text(
                       'Create Account',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A1A1A),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                         letterSpacing: -1,
                         height: 1.2,
                       ),
@@ -62,7 +64,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -99,10 +101,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     // Phone Number
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F8FA),
+                        color: isDark ? const Color(0xFF1E2030) : const Color(0xFFF7F8FA),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.grey[200]!,
+                          color: isDark ? const Color(0xFF2E324A) : Colors.grey[200]!,
                           width: 1,
                         ),
                       ),
@@ -112,10 +114,17 @@ class _SignupScreenState extends State<SignupScreen> {
                           selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
                           useEmoji: true,
                         ),
+                        textStyle: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        selectorTextStyle: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         inputDecoration: InputDecoration(
                           labelText: "Phone Number",
                           labelStyle: TextStyle(
-                            color: Colors.grey[600],
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -129,7 +138,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: const Color(0xFFF7F8FA),
+                          fillColor: Colors.transparent,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 20,
@@ -162,7 +171,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                           size: 22,
                         ),
                         onPressed: () {
@@ -191,7 +200,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           _obscureConfirmPassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                           size: 22,
                         ),
                         onPressed: () {
@@ -224,7 +233,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF5B9BD5).withOpacity(0.3),
+                            color: const Color(0xFF5B9BD5).withOpacity(isDark ? 0.15 : 0.3),
                             blurRadius: 25,
                             offset: const Offset(0, 12),
                           ),
@@ -266,7 +275,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       children: [
                         Expanded(
                           child: Divider(
-                            color: Colors.grey[300],
+                            color: isDark ? Colors.grey[800] : Colors.grey[300],
                             thickness: 1,
                           ),
                         ),
@@ -275,7 +284,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: Text(
                             "OR",
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -283,7 +292,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         Expanded(
                           child: Divider(
-                            color: Colors.grey[300],
+                            color: isDark ? Colors.grey[800] : Colors.grey[300],
                             thickness: 1,
                           ),
                         ),
@@ -298,7 +307,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         Text(
                           "Already have an account? ",
                           style: TextStyle(
-                            color: Colors.grey[700],
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
                             fontSize: 15,
                           ),
                         ),
@@ -342,12 +351,13 @@ class _SignupScreenState extends State<SignupScreen> {
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF1E2030) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey[200]!,
+          color: isDark ? const Color(0xFF2E324A) : Colors.grey[200]!,
           width: 1,
         ),
       ),
@@ -355,15 +365,15 @@ class _SignupScreenState extends State<SignupScreen> {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
-          color: Color(0xFF1A1A1A),
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
-            color: Colors.grey[600],
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
@@ -374,7 +384,7 @@ class _SignupScreenState extends State<SignupScreen> {
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: const Color(0xFFF7F8FA),
+          fillColor: Colors.transparent,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 20,

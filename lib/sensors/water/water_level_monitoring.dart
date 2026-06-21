@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'dart:math' as math;
+import 'package:lottie/lottie.dart';
 
 class WaterLevelMonitoringScreen extends StatefulWidget {
   final String deviceId;
@@ -23,9 +26,12 @@ class _WaterLevelMonitoringScreenState
   late AnimationController _scaleController;
   late AnimationController _glowController;
   late AnimationController _bubbleController;
+  late AnimationController _ringController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
+  late Animation<double> _ringAnimation;
+  List<Map<String, dynamic>> _allLogs = [];
 
   @override
   void initState() {
@@ -69,6 +75,14 @@ class _WaterLevelMonitoringScreenState
       parent: _glowController,
       curve: Curves.easeInOut,
     );
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _ringAnimation = CurvedAnimation(
+      parent: _ringController,
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -78,6 +92,7 @@ class _WaterLevelMonitoringScreenState
     _scaleController.dispose();
     _glowController.dispose();
     _bubbleController.dispose();
+    _ringController.dispose();
     super.dispose();
   }
 
@@ -122,20 +137,29 @@ class _WaterLevelMonitoringScreenState
         .ref('devices')
         .child(widget.deviceId)
         .child('logs')
-        .limitToLast(1);
+        .limitToLast(30);
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0A0B10) : const Color(0xFFF8F9FA),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF0F9FF),
-              Color(0xFFFAFDFF),
-              Color(0xFFFFFFFF),
-              Color(0xFFF5FAFF),
-            ],
+            colors: isDark
+                ? [
+                    const Color(0xFF0F1016),
+                    const Color(0xFF141622),
+                    const Color(0xFF1A1D30),
+                  ]
+                : [
+                    const Color(0xFFF0F9FF),
+                    const Color(0xFFFAFDFF),
+                    const Color(0xFFFFFFFF),
+                    const Color(0xFFF5FAFF),
+                  ],
           ),
         ),
         child: StreamBuilder<DatabaseEvent>(
@@ -147,14 +171,27 @@ class _WaterLevelMonitoringScreenState
 
             final Map logs = Map<String, dynamic>.from(
                 snapshot.data!.snapshot.value as Map);
-            final latestLog = logs.values.first;
-            final int waterLevel = latestLog['waterLevel'] ?? 0;
+            final sortedKeys = logs.keys.toList()..sort();
+            final latestLog = logs[sortedKeys.last];
+            final int waterLevel = int.tryParse(latestLog['waterLevel'].toString()) ?? 0;
             final String time = latestLog['time'] ?? "--";
             final double percentage = _calculatePercentage(waterLevel);
             final String levelDescription = _getLevelDescription(waterLevel);
             final Color levelColor = _getLevelColor(waterLevel);
             final Color percentColor = _getPercentageColor(waterLevel);
             final IconData levelIcon = _getLevelIcon(waterLevel);
+
+            // Store all logs for history chart
+            _allLogs = sortedKeys
+                .map((k) => Map<String, dynamic>.from(logs[k] as Map))
+                .toList();
+
+            if (waterLevel == 1) {
+              Future.microtask(() {
+                SystemSound.play(SystemSoundType.alert);
+                HapticFeedback.vibrate();
+              });
+            }
 
             return SafeArea(
               child: FadeTransition(
@@ -185,6 +222,10 @@ class _WaterLevelMonitoringScreenState
                             ),
                             const SizedBox(height: 10),
                             _buildDateTimeRow(time),
+                            if (_allLogs.length > 1) ...[  
+                              const SizedBox(height: 16),
+                              _buildWaterHistoryChart(),
+                            ],
                             const SizedBox(height: 16),
                           ],
                         ),
@@ -201,15 +242,17 @@ class _WaterLevelMonitoringScreenState
   }
 
   Widget _buildModernAppBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E2030) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -259,14 +302,14 @@ class _WaterLevelMonitoringScreenState
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Water Monitor',
                   style: TextStyle(
-                    color: Color(0xFF1A1A1A),
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
@@ -323,31 +366,49 @@ class _WaterLevelMonitoringScreenState
     Color percentColor,
     int waterLevel,
   ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Color(0xFFF0F9FF)],
-        ),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: levelColor.withOpacity(0.2), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: levelColor.withOpacity(0.15),
-            blurRadius: 35,
-            offset: const Offset(0, 15),
-            spreadRadius: -5,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedBuilder(
+      animation: _ringAnimation,
+      builder: (context, child) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [const Color(0xFF1E2030), const Color(0xFF15161F)]
+                  : [Colors.white, const Color(0xFFF0F9FF)],
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: levelColor.withOpacity(isDark 
+                  ? (0.3 + _ringAnimation.value * 0.3) 
+                  : (0.5 + _ringAnimation.value * 0.2)), 
+              width: 2.2,
+            ),
+            boxShadow: [
+              // Neon cyan glowing ring – pulses
+              BoxShadow(
+                color: levelColor.withOpacity(isDark 
+                    ? (0.15 + _ringAnimation.value * 0.25) 
+                    : (0.35 + _ringAnimation.value * 0.25)),
+                blurRadius: 24 + _ringAnimation.value * 16,
+                spreadRadius: 2 + _ringAnimation.value * 5,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.35 : 0.04),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+          child: child,
+        );
+      },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -408,7 +469,7 @@ class _WaterLevelMonitoringScreenState
                 Text(
                   'Water Level',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: isDark ? Colors.grey[400] : Colors.grey[500],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -515,7 +576,7 @@ class _WaterLevelMonitoringScreenState
                 Text(
                   'Current Water Status',
                   style: TextStyle(
-                    color: Colors.grey[700],
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -579,19 +640,18 @@ class _WaterLevelMonitoringScreenState
     required String value,
     required List<Color> gradient,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
+        color: isDark ? const Color(0xFF1E2030) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: gradient[0].withOpacity(isDark ? 0.25 : 0.12), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: gradient[0].withOpacity(0.4),
-            blurRadius: 15,
+            color: gradient[0].withOpacity(isDark ? 0.02 : 0.06),
+            blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
@@ -602,29 +662,45 @@ class _WaterLevelMonitoringScreenState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient[0].withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Icon(icon, color: Colors.white, size: 20),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? Colors.grey[400] : Colors.grey[500],
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 0.3,
+          const SizedBox(height: 4),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: gradient,
+            ).createShader(bounds),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Colors.white, // fallback
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],
@@ -637,42 +713,16 @@ class _WaterLevelMonitoringScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF4FC3F7).withOpacity(0.3),
-                      const Color(0xFF4FC3F7).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4FC3F7).withOpacity(0.3),
-                      blurRadius: 40,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(Color(0xFF4FC3F7)),
-                  strokeWidth: 5,
-                ),
-              ),
-            ],
+          Lottie.asset(
+            'assets/animations/loader.json',
+            width: 160,
+            height: 160,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const CircularProgressIndicator(
+                color: Color(0xFF4FC3F7),
+              );
+            },
           ),
           const SizedBox(height: 32),
           const Text(
@@ -719,9 +769,175 @@ class _WaterLevelMonitoringScreenState
       return time;
     } catch (e) { return time; }
   }
+
+  Widget _buildWaterHistoryChart() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const levelColor = Color(0xFF4FC3F7);
+
+    final List<FlSpot> spots = [];
+    for (int i = 0; i < _allLogs.length; i++) {
+      final log = _allLogs[i];
+      final level = int.tryParse(log['waterLevel']?.toString() ?? '');
+      if (level != null) {
+        final pct = _calculatePercentage(level);
+        spots.add(FlSpot(i.toDouble(), pct));
+      }
+    }
+
+    if (spots.length < 2) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2030) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: levelColor.withOpacity(isDark ? 0.25 : 0.12),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: levelColor.withOpacity(isDark ? 0.06 : 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Water Level History',
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: levelColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${spots.length} readings',
+                  style: const TextStyle(
+                    color: Color(0xFF29B6F6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 25,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.12),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 25,
+                      reservedSize: 32,
+                      getTitlesWidget: (val, meta) => Text(
+                        '${val.toInt()}%',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[500] : Colors.grey[400],
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                minY: 0,
+                maxY: 100,
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => isDark ? const Color(0xFF1A2035) : Colors.white,
+                    getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(
+                      '${s.y.toStringAsFixed(1)}%',
+                      const TextStyle(
+                        color: Color(0xFF4FC3F7),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    )).toList(),
+                  ),
+                  handleBuiltInTouches: true,
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.4,
+                    color: const Color(0xFF29B6F6),
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: spots.length <= 10,
+                      getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                        radius: 4,
+                        color: const Color(0xFF29B6F6),
+                        strokeColor: isDark ? const Color(0xFF1E2030) : Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF29B6F6).withOpacity(isDark ? 0.25 : 0.18),
+                          const Color(0xFF29B6F6).withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class EnhancedWaterTankPainter extends CustomPainter {
+
   final double percentage;
   final Color color;
   final double wavePhase;
@@ -763,9 +979,51 @@ class EnhancedWaterTankPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawRRect(tankRect, bgPaint);
 
+    // Draw calibration tick marks on the inner edges of the tank cylinder
+    final tickPaint = Paint()
+      ..color = color.withOpacity(0.2)
+      ..strokeWidth = 1.5;
+    final activeTickPaint = Paint()
+      ..color = color.withOpacity(0.5)
+      ..strokeWidth = 2.5;
+
+    for (int i = 1; i <= 4; i++) {
+      final y = size.height * 0.02 + (size.height * 0.96) * (1 - i / 5);
+      final isLvlActive = (percentage / 100) >= (i / 5);
+      
+      // Left side ticks
+      canvas.drawLine(
+        Offset(size.width * 0.08, y),
+        Offset(size.width * 0.18, y),
+        isLvlActive ? activeTickPaint : tickPaint,
+      );
+      
+      // Right side ticks
+      canvas.drawLine(
+        Offset(size.width * 0.92, y),
+        Offset(size.width * 0.82, y),
+        isLvlActive ? activeTickPaint : tickPaint,
+      );
+    }
+
     if (percentage > 0) {
       final fillHeight = (size.height * 0.96) * (percentage / 100);
       final waterTop = size.height * 0.98 - fillHeight;
+
+      final backdropPath = Path();
+      backdropPath.moveTo(size.width * 0.08, size.height * 0.98);
+      backdropPath.lineTo(size.width * 0.08, waterTop + 14);
+
+      for (double i = 0; i <= size.width * 0.84; i++) {
+        final x = size.width * 0.08 + i;
+        final wave1 = math.sin((i / 18) - (wavePhase * 1.5 * math.pi)) * 6;
+        final wave2 = math.cos((i / 12) + (wavePhase * 2.2 * math.pi)) * 4;
+        final y = waterTop + 14 + wave1 + wave2;
+        backdropPath.lineTo(x, y);
+      }
+
+      backdropPath.lineTo(size.width * 0.92, size.height * 0.98);
+      backdropPath.close();
 
       final wavePath = Path();
       wavePath.moveTo(size.width * 0.08, size.height * 0.98);
@@ -785,14 +1043,19 @@ class EnhancedWaterTankPainter extends CustomPainter {
       canvas.save();
       canvas.clipRRect(tankRect);
 
+      final backdropPaint = Paint()
+        ..color = color.withOpacity(0.22)
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(backdropPath, backdropPaint);
+
       final fillPaint = Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            color.withOpacity(0.3),
-            color.withOpacity(0.55),
-            color.withOpacity(0.75),
+            color.withOpacity(0.35),
+            color.withOpacity(0.60),
+            color.withOpacity(0.80),
           ],
           stops: const [0.0, 0.5, 1.0],
         ).createShader(Rect.fromLTWH(0, waterTop, size.width, fillHeight));

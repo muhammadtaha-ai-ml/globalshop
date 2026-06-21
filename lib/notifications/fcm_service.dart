@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:globalshop/notifications/notification_service.dart';
 
 class FCMService {
   static final _messaging = FirebaseMessaging.instance;
@@ -19,6 +21,11 @@ class FCMService {
 
   /// INIT FCM — call once in main()
   static Future<void> init() async {
+    if (kIsWeb) {
+      print("🔔 FCMService: Web platform detected. Skipping FCM setup.");
+      return;
+    }
+
     // 1️⃣ Request permission
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -62,11 +69,19 @@ class FCMService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("📩 Foreground message received: ${message.notification?.title}");
       _showLocal(message);
+      
+      final title = message.notification?.title ?? message.data['title'] ?? 'Alert';
+      final body = message.notification?.body ?? message.data['body'] ?? 'New sensor trigger';
+      NotificationService.saveNotification(title: title, body: body);
     });
 
     // 6️⃣ Background/terminated message handler
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("📩 App opened from notification: ${message.notification?.title}");
+      
+      final title = message.notification?.title ?? message.data['title'] ?? 'Alert';
+      final body = message.notification?.body ?? message.data['body'] ?? 'New sensor trigger';
+      NotificationService.saveNotification(title: title, body: body);
     });
 
     // 7️⃣ Token refresh listener — auto-update all devices
@@ -108,6 +123,10 @@ class FCMService {
 
   /// Get current FCM token
   static Future<String?> getToken() async {
+    if (kIsWeb) {
+      print("📱 FCM Token: Skipped on Web platform.");
+      return null;
+    }
     try {
       final token = await _messaging.getToken();
       if (token != null && token.isNotEmpty) {
@@ -124,6 +143,10 @@ class FCMService {
 
   /// Force refresh token (delete old + get new)
   static Future<String?> refreshAndGetToken() async {
+    if (kIsWeb) {
+      print("🔄 Force FCM token refresh: Skipped on Web platform.");
+      return null;
+    }
     try {
       print("🔄 Forcing FCM token refresh...");
       await _messaging.deleteToken();

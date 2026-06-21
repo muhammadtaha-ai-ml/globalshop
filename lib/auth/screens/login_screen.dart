@@ -23,8 +23,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0A0B10) : Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -38,13 +40,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 60),
 
                     // 🔹 TITLE
-                    const Text(
+                    Text(
                       'Welcome Back',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A1A1A),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                         letterSpacing: -1,
                       ),
                     ),
@@ -54,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
                     const SizedBox(height: 50),
@@ -83,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                         onPressed: () {
                           setState(() {
@@ -123,18 +125,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     // 🔹 DIVIDER
                     Row(
                       children: [
-                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Expanded(child: Divider(color: isDark ? Colors.grey[800] : Colors.grey[300])),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: Text(
                             "OR",
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Expanded(child: Divider(color: isDark ? Colors.grey[800] : Colors.grey[300])),
                       ],
                     ),
 
@@ -151,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style: TextStyle(color: Colors.grey[700]),
+                          style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey[700]),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -184,47 +186,49 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 🔹 GOOGLE BUTTON (Updated with proper Google logo)
   // 🔹 GOOGLE BUTTON (Using Asset Image)
-Widget _googleButton() {
-  return Container(
-    height: 58,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(30),
-      onTap: _googleLogin,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // ✅ GOOGLE LOGO (From Assets)
-          Image.asset(
-            'assets/images/google_logo.png', // 👈 Apna asset path yahan dalein
-            height: 24,
-            width: 24,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                Icons.g_mobiledata_rounded,
-                color: Colors.red,
-                size: 28,
-              );
-            },
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            "Sign in with Google",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+  Widget _googleButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2030) : Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: isDark ? const Color(0xFF2E324A) : Colors.grey.shade300),
       ),
-    ),
-  );
-}
+      child: InkWell(
+        borderRadius: BorderRadius.circular(30),
+        onTap: _googleLogin,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // ✅ GOOGLE LOGO (From Assets)
+            Image.asset(
+              'assets/images/google_logo.png', // 👈 Apna asset path yahan dalein
+              height: 24,
+              width: 24,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.g_mobiledata_rounded,
+                  color: Colors.red,
+                  size: 28,
+                );
+              },
+            ),
+            const SizedBox(width: 10),
+            Text(
+              "Sign in with Google",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   // 🔹 TEXT FIELD
   Widget _buildTextField({
@@ -236,27 +240,33 @@ Widget _googleButton() {
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF1E2030) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: isDark ? const Color(0xFF2E324A) : Colors.grey[200]!),
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
         validator: validator,
+        style: TextStyle(
+          color: isDark ? Colors.white : Colors.black87,
+        ),
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
+          ),
           prefixIcon: Icon(icon, color: const Color(0xFF5B9BD5)),
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
-          filled: true,
-          fillColor: const Color(0xFFF7F8FA),
+          fillColor: Colors.transparent,
         ),
       ),
     );

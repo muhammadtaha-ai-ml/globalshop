@@ -22,15 +22,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0A0B10) : Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: Color(0xFF1A1A1A),
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
             size: 22,
           ),
           onPressed: () => Navigator.pop(context),
@@ -66,13 +68,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 40),
                     
                     // Title Section
-                    const Text(
+                    Text(
                       'Forgot Password?',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A1A1A),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                         letterSpacing: -1,
                         height: 1.2,
                       ),
@@ -85,7 +87,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                         fontWeight: FontWeight.w400,
                         height: 1.5,
                       ),
@@ -124,7 +126,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF5B9BD5).withOpacity(0.3),
+                            color: const Color(0xFF5B9BD5).withOpacity(isDark ? 0.15 : 0.3),
                             blurRadius: 25,
                             offset: const Offset(0, 12),
                           ),
@@ -169,7 +171,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         Text(
                           "Remember your password? ",
                           style: TextStyle(
-                            color: Colors.grey[700],
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
                             fontSize: 15,
                           ),
                         ),
@@ -205,27 +207,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF1E2030) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey[200]!,
+          color: isDark ? const Color(0xFF2E324A) : Colors.grey[200]!,
           width: 1,
         ),
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
-          color: Color(0xFF1A1A1A),
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
-            color: Colors.grey[600],
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
@@ -235,7 +238,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: const Color(0xFFF7F8FA),
+          fillColor: Colors.transparent,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 20,

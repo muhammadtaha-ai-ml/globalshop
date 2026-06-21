@@ -46,21 +46,24 @@ exports.waterLevelNotification = onValueCreated(
 
     // ─── Alert message ────────────────────────────────────────
     let body = "";
+    const serverTime = new Date().toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi" });
+
     if (levelDescription.includes("very low")) {
-      body = "⚠️ Water level is VERY LOW.\nImmediate watering recommended to protect your plants.";
+      body = `⚠️ VERY LOW.\nWatering recommended. (Sent: ${serverTime})`;
     } else if (levelDescription.includes("very high")) {
-      body = "🚨 Water level is VERY HIGH.\nExcess water may harm plant roots. Please take action.";
+      body = `🚨 VERY HIGH.\nExcess water may harm roots. (Sent: ${serverTime})`;
     } else if (levelDescription.includes("medium low") || levelDescription.includes("medium high")) {
       console.log(`ℹ️ Level "${levelDescription}" — no critical alert.`);
       return null;
     } else if (levelDescription.includes("low")) {
-      body = "💧 Water level is LOW.\nPlease monitor and consider watering soon.";
+      body = `💧 LOW.\nPlease consider watering soon. (Sent: ${serverTime})`;
     } else if (levelDescription.includes("high")) {
-      body = "💦 Water level is HIGH.\nEnsure proper drainage to avoid overwatering.";
+      body = `💦 HIGH.\nEnsure proper drainage. (Sent: ${serverTime})`;
     } else {
       console.log(`ℹ️ Level "${levelDescription}" — no critical alert.`);
       return null;
     }
+
 
     // ─── Get tokens ───────────────────────────────────────────
     const tokensSnap = await admin
