@@ -168,14 +168,14 @@ class _AddDeviceTabState extends State<AddDeviceTab> {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                  colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7E57C2).withOpacity(0.3),
+                    color: const Color(0xFF5B9BD5).withOpacity(0.3),
                     blurRadius: 24,
                     offset: const Offset(0, 10),
                   ),
@@ -264,7 +264,7 @@ class _AddDeviceTabState extends State<AddDeviceTab> {
                   height: 20,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                      colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -404,12 +404,12 @@ class _AddDeviceTabState extends State<AddDeviceTab> {
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                  colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                 ),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7E57C2).withOpacity(0.3),
+                    color: const Color(0xFF5B9BD5).withOpacity(0.3),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),

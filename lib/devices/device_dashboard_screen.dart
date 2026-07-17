@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../sensors/water/water_level_monitoring.dart';
 import '../sensors/gas/gas_monitor_screen.dart';
 import '../sensors/schedule/set_time_schedule.dart';
+import '../sensors/bulb/bulb_automation_screen.dart';
 
 class DeviceDashboardScreen extends StatefulWidget {
   final String deviceId;
@@ -44,28 +45,46 @@ class _DeviceDashboardScreenState extends State<DeviceDashboardScreen> {
         return;
       }
 
-      // Fetch from database if not cached
-      final logsRef = FirebaseDatabase.instance
+      // Fetch root device node from database
+      final deviceRef = FirebaseDatabase.instance
           .ref('devices')
-          .child(widget.deviceId)
-          .child('logs');
+          .child(widget.deviceId);
           
-      final snapshot = await logsRef.limitToLast(1).get();
-      if (snapshot.value != null) {
-        final Map logs = Map<String, dynamic>.from(snapshot.value as Map);
-        final sortedKeys = logs.keys.toList()..sort();
-        final latestLog = logs[sortedKeys.last];
-        final String? type = latestLog['sensorType']?.toString();
+      final snapshot = await deviceRef.get();
+      if (snapshot.exists && snapshot.value != null) {
+        final Map<dynamic, dynamic> deviceData = snapshot.value as Map<dynamic, dynamic>;
         
-        if (type != null) {
-          await prefs.setString('sensor_type_${widget.deviceId}', type);
+        // 1. Check deviceName
+        final String name = (deviceData['deviceName'] ?? '').toString().toLowerCase();
+        if (name.contains('bulb') || name.contains('relay') || name.contains('light') || name.contains('switch')) {
+          await prefs.setString('sensor_type_${widget.deviceId}', 'bulb');
           if (mounted) {
             setState(() {
-              _sensorType = type;
+              _sensorType = 'bulb';
               _isLoading = false;
             });
           }
           return;
+        }
+
+        // 2. Check logs fallback
+        final logsVal = deviceData['logs'];
+        if (logsVal is Map) {
+          final sortedKeys = logsVal.keys.toList()..sort();
+          final latestLog = logsVal[sortedKeys.last];
+          if (latestLog is Map) {
+            final String? type = latestLog['sensorType']?.toString();
+            if (type != null) {
+              await prefs.setString('sensor_type_${widget.deviceId}', type);
+              if (mounted) {
+                setState(() {
+                  _sensorType = type;
+                  _isLoading = false;
+                });
+              }
+              return;
+            }
+          }
         }
       }
     } catch (e) {
@@ -126,6 +145,10 @@ class _DeviceDashboardScreenState extends State<DeviceDashboardScreen> {
 
     final isWater = _sensorType!.toLowerCase().contains('water');
     final isGas = _sensorType!.toLowerCase().contains('gas');
+    final isBulb = _sensorType!.toLowerCase().contains('bulb') ||
+        _sensorType!.toLowerCase().contains('relay') ||
+        _sensorType!.toLowerCase().contains('light') ||
+        _sensorType!.toLowerCase().contains('switch');
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -248,7 +271,9 @@ class _DeviceDashboardScreenState extends State<DeviceDashboardScreen> {
                         ? 'Water System'
                         : isGas
                             ? 'Gas System'
-                            : 'Device',
+                            : isBulb
+                                ? 'Bulb System'
+                                : 'Device',
                     style: TextStyle(
                       color: textThemeColor,
                       fontSize: 28,
@@ -294,92 +319,125 @@ class _DeviceDashboardScreenState extends State<DeviceDashboardScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 child: isWater
-                    ? GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.80,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _modernCard(
-                            context: context,
-                            title: "Water Level",
-                            subtitle: "Monitor",
-                            imagePath: 'assets/uploads/water_level.png',
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFE8F4FD),
-                                Color(0xFFD2E9FC),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            iconColor: const Color(0xFF1976D2),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    WaterLevelMonitoringScreen(
-                                        deviceId: widget.deviceId),
-                              ),
+                  ? GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 0.80,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        _modernCard(
+                          context: context,
+                          title: "Water Level",
+                          subtitle: "Monitor",
+                          imagePath: 'assets/uploads/water_level.png',
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFE8F4FD),
+                              Color(0xFFD2E9FC),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          iconColor: const Color(0xFF1976D2),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  WaterLevelMonitoringScreen(
+                                      deviceId: widget.deviceId),
                             ),
                           ),
-                          _modernCard(
-                            context: context,
-                            title: "Set Schedule",
-                            subtitle: "Timer",
-                            imagePath: 'assets/uploads/schedule.png',
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFFDF0F4),
-                                Color(0xFFFADAE5),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            iconColor: const Color(0xFFC2185B),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SetTimeScheduleScreen(
-                                    deviceId: widget.deviceId),
-                              ),
+                        ),
+                        _modernCard(
+                          context: context,
+                          title: "Set Schedule",
+                          subtitle: "Timer",
+                          imagePath: 'assets/uploads/schedule.png',
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFDF0F4),
+                              Color(0xFFFADAE5),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          iconColor: const Color(0xFFC2185B),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SetTimeScheduleScreen(
+                                  deviceId: widget.deviceId),
                             ),
                           ),
-                        ],
-                      )
-                    : GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.80,
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        children: [
-                          _modernCard(
-                            context: context,
-                            title: "Gas Monitor",
-                            subtitle: "Safety",
-                            imagePath: 'assets/uploads/gas.png',
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFEDE4F5),
-                                Color(0xFFE2D1F0),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            iconColor: const Color(0xFF7B1FA2),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => GasMonitorScreen(
-                                    deviceId: widget.deviceId),
+                        ),
+                      ],
+                    )
+                  : (isBulb
+                      ? GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.80,
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          children: [
+                            _modernCard(
+                              context: context,
+                              title: "Bulb Automation",
+                              subtitle: "Switch Control",
+                              imagePath: 'assets/uploads/bulb.png',
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFFDE7),
+                                  Color(0xFFFFF9C4),
+                                ],
+                                begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                              ),
+                              iconColor: const Color(0xFFFBC02D),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BulbAutomationScreen(
+                                      deviceId: widget.deviceId),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      : GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.80,
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          children: [
+                            _modernCard(
+                              context: context,
+                              title: "Gas Monitor",
+                              subtitle: "Safety",
+                              imagePath: 'assets/uploads/gas.png',
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFEDE4F5),
+                                  Color(0xFFE2D1F0),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              iconColor: const Color(0xFF7B1FA2),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => GasMonitorScreen(
+                                      deviceId: widget.deviceId),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )),
               ),
             ),
           ],
@@ -585,6 +643,12 @@ class _DeviceDashboardScreenState extends State<DeviceDashboardScreen> {
       } else if (title.toLowerCase().contains("schedule") || title.toLowerCase().contains("timer")) {
         cardGradient = const LinearGradient(
           colors: [Color(0xFF2D1A22), Color(0xFF1E2030)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      } else if (title.toLowerCase().contains("bulb") || title.toLowerCase().contains("automation")) {
+        cardGradient = const LinearGradient(
+          colors: [Color(0xFF2A1E08), Color(0xFF1E2030)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );

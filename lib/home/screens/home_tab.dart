@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../devices/device_dashboard_screen.dart';
@@ -225,7 +226,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: 0.95,
+                  childAspectRatio: 0.85,
                 ),
                 itemBuilder: (context, index) {
                   final device = activeDevices[index].value;
@@ -255,6 +256,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
       return Icons.gas_meter_rounded; // Biogas/Methane monitor icon
     } else if (lowerName.contains('water') || lowerName.contains('tank') || lowerName.contains('level') || lowerName.contains('pump') || lowerName.contains('liquid') || lowerId.contains('water') || lowerId.contains('tank')) {
       return Icons.opacity_rounded; // Water droplet / liquid level icon
+    } else if (lowerName.contains('bulb') || lowerName.contains('relay') || lowerName.contains('light') || lowerName.contains('switch') || lowerId.contains('bulb') || lowerId.contains('relay')) {
+      return Icons.lightbulb_rounded; // Lightbulb icon
     }
     
     return Icons.sensors_rounded; // General smart sensor fallback
@@ -274,6 +277,12 @@ class _HomeTabState extends ConsumerState<HomeTab> {
       } else if (lowerName.contains('water') || lowerName.contains('tank') || lowerName.contains('level') || lowerName.contains('pump') || lowerName.contains('liquid') || lowerId.contains('water') || lowerId.contains('tank')) {
         return const LinearGradient(
           colors: [Color(0xFF0C2530), Color(0xFF1E2030)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      } else if (lowerName.contains('bulb') || lowerName.contains('relay') || lowerName.contains('light') || lowerName.contains('switch') || lowerId.contains('bulb') || lowerId.contains('relay')) {
+        return const LinearGradient(
+          colors: [Color(0xFF2C2510), Color(0xFF1E2030)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -299,6 +308,13 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
+    } else if (lowerName.contains('bulb') || lowerName.contains('relay') || lowerName.contains('light') || lowerName.contains('switch') || lowerId.contains('bulb') || lowerId.contains('relay')) {
+      // Premium warm yellow gradient for Bulb
+      return const LinearGradient(
+        colors: [Color(0xFFFFFDE7), Color(0xFFFFF59D)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
     }
 
     // Default clean blue gradient
@@ -317,6 +333,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
       return const Color(0xFFE65100); // Deep biogas orange
     } else if (lowerName.contains('water') || lowerName.contains('tank') || lowerName.contains('level') || lowerName.contains('pump') || lowerName.contains('liquid') || lowerId.contains('water') || lowerId.contains('tank')) {
       return const Color(0xFF006064); // Cool deep water teal/blue
+    } else if (lowerName.contains('bulb') || lowerName.contains('relay') || lowerName.contains('light') || lowerName.contains('switch') || lowerId.contains('bulb') || lowerId.contains('relay')) {
+      return const Color(0xFFFBC02D); // Warm amber yellow
     }
 
     return const Color(0xFF1976D2); // Default blue
@@ -334,12 +352,14 @@ class _HomeTabState extends ConsumerState<HomeTab> {
     // Determine device category
     final bool isGas = name.toLowerCase().contains('gas') || name.toLowerCase().contains('biogas') || id.toLowerCase().contains('gas');
     final bool isWater = name.toLowerCase().contains('water') || name.toLowerCase().contains('tank') || name.toLowerCase().contains('level') || name.toLowerCase().contains('pump') || name.toLowerCase().contains('liquid') || id.toLowerCase().contains('water') || id.toLowerCase().contains('tank');
+    final bool isBulb = name.toLowerCase().contains('bulb') || name.toLowerCase().contains('relay') || name.toLowerCase().contains('light') || name.toLowerCase().contains('switch') || id.toLowerCase().contains('bulb') || id.toLowerCase().contains('relay');
     
     // Customize stats based on type
-    final String categoryLabel = isGas ? "BIOGAS MONITOR" : (isWater ? "WATER LEVEL" : "SMART SENSOR");
-    final String readoutValue = isGas ? "14.2% Vol" : (isWater ? "78% Level" : "Active");
-    final double levelFactor = isGas ? 0.32 : (isWater ? 0.78 : 0.50);
-    final String statusText = isGas ? "Stable Methane" : (isWater ? "Tank Optimal" : "Online");
+    final String categoryLabel = isGas
+        ? "BIOGAS MONITOR"
+        : (isWater
+            ? "WATER LEVEL"
+            : (isBulb ? "BULB AUTOMATE" : "SMART SENSOR"));
 
     return Hero(
       tag: 'device_${device['deviceId']}',
@@ -454,90 +474,253 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 6),
 
-                        // High-tech Digital Readout
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              readoutValue.split(' ')[0],
-                              style: TextStyle(
-                                color: iconColor,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -1,
-                              ),
-                            ),
-                            if (readoutValue.split(' ').length > 1) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                readoutValue.split(' ')[1],
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Level Progress Bar
-                        Container(
-                          height: 5,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: levelFactor,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: iconColor,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Live status pulsing indicator
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF4CAF50).withOpacity(0.4),
-                                    blurRadius: 4,
-                                    spreadRadius: 1,
+                        // High-tech Digital Readout Stream
+                        StreamBuilder<DatabaseEvent>(
+                          stream: isBulb
+                              ? FirebaseDatabase.instance
+                                  .ref('devices')
+                                  .child(id)
+                                  .child('relay')
+                                  .onValue
+                              : FirebaseDatabase.instance
+                                  .ref('devices')
+                                  .child(id)
+                                  .child('logs')
+                                  .limitToLast(1)
+                                  .onValue,
+                          builder: (context, snapshot) {
+                            // While Firebase is connecting show a loader
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return SizedBox(
+                                height: 60,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                                    ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                statusText,
-                                style: const TextStyle(
-                                  color: Color(0xFF4CAF50),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                              );
+                            }
+
+                            String currentReadout = isGas ? "--% Vol" : (isWater ? "--% Level" : (isBulb ? "OFF" : "Active"));
+                            double currentFactor = 0.0;
+                            String currentStatus = isGas ? "Connecting..." : (isWater ? "Connecting..." : (isBulb ? "Connecting..." : "Online"));
+                            Color currentStatusColor = Colors.grey;
+
+                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                              final rawVal = snapshot.data!.snapshot.value;
+                              if (isBulb) {
+                                int relayVal = 0;
+                                if (rawVal is Map) {
+                                  relayVal = int.tryParse(rawVal['relay1']?.toString() ?? '0') ?? 0;
+                                } else if (rawVal is num) {
+                                  relayVal = rawVal.toInt();
+                                }
+                                
+                                if (relayVal == 1) {
+                                  currentReadout = "ON";
+                                  currentFactor = 1.0;
+                                  currentStatus = "Light is ON";
+                                  currentStatusColor = const Color(0xFF4CAF50);
+                                } else {
+                                  currentReadout = "OFF";
+                                  currentFactor = 0.0;
+                                  currentStatus = "Light is OFF";
+                                  currentStatusColor = const Color(0xFFEF5350);
+                                }
+                              } else if (rawVal is Map) {
+                                final logsMap = Map<dynamic, dynamic>.from(rawVal);
+                                final sortedKeys = logsMap.keys.toList()..sort();
+                                if (sortedKeys.isNotEmpty) {
+                                  final latestLog = Map<String, dynamic>.from(logsMap[sortedKeys.last] as Map);
+                                  
+                                  if (isWater) {
+                                    final int waterLevel = int.tryParse(
+                                      (latestLog['waterLevel'] ?? latestLog['WaterLevel'] ?? '-1').toString()
+                                    ) ?? -1;
+                                    if (waterLevel >= 0) {
+                                      final double pct = waterLevel < 1 
+                                          ? 0.0 
+                                          : (waterLevel > 7 ? 100.0 : (waterLevel / 7) * 100);
+                                      currentReadout = "${pct.toStringAsFixed(0)}% Level";
+                                      currentFactor = (pct / 100.0).clamp(0.0, 1.0);
+                                      final desc = (latestLog['levelDescription'] ?? latestLog['LevelDescription'] ?? '').toString();
+                                      currentStatus = desc.isNotEmpty ? desc : "Tank Optimal";
+                                      final descLower = currentStatus.toLowerCase();
+                                      if (descLower.contains("very low")) {
+                                        currentStatusColor = const Color(0xFFC62828);
+                                      } else if (descLower.contains("low")) {
+                                        currentStatusColor = const Color(0xFFE65100);
+                                      } else if (descLower.contains("very high")) {
+                                        currentStatusColor = const Color(0xFF1565C0);
+                                      } else {
+                                        currentStatusColor = const Color(0xFF2E7D32);
+                                      }
+                                    }
+                                  } else if (isGas) {
+                                    const excludedKeys = {'temperature', 'humidity', 'time', 'sensortype', 'deviceid'};
+                                    final List<Map<String, dynamic>> gasReadings = [];
+
+                                    for (final key in latestLog.keys) {
+                                      final keyStr = key.toString().toLowerCase();
+                                      if (excludedKeys.contains(keyStr)) continue;
+                                      final val = latestLog[key];
+
+                                      double gasVal = 0.0;
+                                      String gasStatus = '';
+
+                                      if (val is Map) {
+                                        // Iterate inner map keys safely (Firebase returns Object? keys)
+                                        for (final innerKey in val.keys) {
+                                          final ik = innerKey.toString();
+                                          if (ik == 'value') {
+                                            gasVal = double.tryParse(val[innerKey]?.toString() ?? '0') ?? 0.0;
+                                          } else if (ik == 'status') {
+                                            gasStatus = val[innerKey]?.toString() ?? '';
+                                          }
+                                        }
+                                        gasReadings.add({'name': key.toString(), 'value': gasVal, 'status': gasStatus});
+                                      } else if (val is num) {
+                                        // Flat numeric value — also valid
+                                        gasReadings.add({'name': key.toString(), 'value': val.toDouble(), 'status': ''});
+                                      }
+                                    }
+
+                                    if (gasReadings.isNotEmpty) {
+                                      double totalValue = 0.0;
+                                      for (var g in gasReadings) totalValue += (g['value'] as double);
+
+                                      double methaneVal = 0.0;
+                                      for (var g in gasReadings) {
+                                        final kl = g['name'].toString().toLowerCase();
+                                        if (kl == 'methane' || kl == 'ch4') {
+                                          methaneVal = g['value'] as double;
+                                        }
+                                      }
+
+                                      String methaneStatus;
+                                      if (methaneVal <= 1000) {
+                                        methaneStatus = 'normal';
+                                      } else if (methaneVal <= 4000) {
+                                        methaneStatus = 'warning';
+                                      } else {
+                                        methaneStatus = 'danger';
+                                      }
+
+                                      final double methanePct = totalValue > 0
+                                          ? (methaneVal / totalValue) * 100
+                                          : 0.0;
+
+                                      currentReadout = "${methanePct.toStringAsFixed(1)}% Vol";
+                                      currentFactor = (methanePct / 100.0).clamp(0.0, 1.0);
+
+                                      if (methaneStatus == 'danger') {
+                                        currentStatus = "Danger Methane";
+                                        currentStatusColor = const Color(0xFFC62828);
+                                      } else if (methaneStatus == 'warning') {
+                                        currentStatus = "Warning Methane";
+                                        currentStatusColor = const Color(0xFFE65100);
+                                      } else {
+                                        currentStatus = "Stable Methane";
+                                        currentStatusColor = const Color(0xFF2E7D32);
+                                      }
+                                    }
+                                  }
+
+                                }
+                              }
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Text(
+                                      currentReadout.split(' ')[0],
+                                      style: TextStyle(
+                                        color: iconColor,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -1,
+                                      ),
+                                    ),
+                                    if (currentReadout.split(' ').length > 1) ...[
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        currentReadout.split(' ')[1],
+                                        style: TextStyle(
+                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[700],
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  height: 5,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: currentFactor,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: iconColor,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: currentStatusColor,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: currentStatusColor.withOpacity(0.4),
+                                            blurRadius: 4,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        currentStatus,
+                                        style: TextStyle(
+                                          color: currentStatusColor,
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),

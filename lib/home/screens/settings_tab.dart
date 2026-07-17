@@ -383,7 +383,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
                   height: 18,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                      colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -429,10 +429,10 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF7E57C2).withOpacity(0.08),
+                            color: const Color(0xFF1E88E5).withOpacity(0.08),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.lock_reset_rounded, color: Color(0xFF7E57C2), size: 22),
+                          child: const Icon(Icons.lock_reset_rounded, color: Color(0xFF1E88E5), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -495,12 +495,12 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
                       height: 52,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF7E57C2), Color(0xFF5E35B1)],
+                          colors: [Color(0xFF5B9BD5), Color(0xFF1E88E5)],
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF7E57C2).withOpacity(0.25),
+                            color: const Color(0xFF5B9BD5).withOpacity(0.25),
                             blurRadius: 12,
                             offset: const Offset(0, 5),
                           ),
@@ -788,7 +788,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
               fontSize: 14,
             ),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF7E57C2), size: 20),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF1E88E5), size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -807,7 +807,7 @@ class _SettingsTabState extends ConsumerState<SettingsTab> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFF7E57C2), width: 1.5),
+                borderSide: const BorderSide(color: Color(0xFF42A5F5), width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               filled: true,

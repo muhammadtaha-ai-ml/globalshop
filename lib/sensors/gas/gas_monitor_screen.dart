@@ -111,7 +111,7 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
           color: const Color(0xFF1976D2),
           label: 'Carbon\nDioxide',
           shortLabel: 'CO₂',
-          unit: 'ppm',
+          unit: '%',
         );
       case 'methane':
         return _GasConfig(
@@ -127,7 +127,7 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
           color: const Color(0xFFF57C00),
           label: 'Methane',
           shortLabel: 'CH₄',
-          unit: 'ppm',
+          unit: '%',
         );
       case 'so2':
         return _GasConfig(
@@ -143,7 +143,7 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
           color: const Color(0xFF7B1FA2),
           label: 'Sulfur\nDioxide',
           shortLabel: 'SO₂',
-          unit: 'ppm',
+          unit: '%',
         );
       default:
         return _GasConfig(
@@ -157,7 +157,7 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
           color: const Color(0xFF00796B),
           label: name,
           shortLabel: name,
-          unit: 'ppm',
+          unit: '%',
         );
     }
   }
@@ -254,6 +254,50 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
                             'value': m['value'],
                           });
                         }
+                      }
+                    }
+
+                    double totalValue = 0.0;
+                    for (var g in gasReadings) {
+                      totalValue += double.tryParse(g['value']?.toString() ?? '0') ?? 0;
+                    }
+
+                    for (var g in gasReadings) {
+                      double value = double.tryParse(g['value']?.toString() ?? '0') ?? 0;
+                      if (totalValue > 0) {
+                        g['percentage'] = ((value / totalValue) * 100).round();
+                      } else {
+                        g['percentage'] = 0;
+                      }
+
+                      // Calculate safety status dynamically based on raw PPM values
+                      final name = g['name']?.toString().toLowerCase() ?? '';
+                      if (name == 'co2') {
+                        if (value <= 1500) {
+                          g['status'] = 'normal';
+                        } else if (value <= 3000) {
+                          g['status'] = 'warning';
+                        } else {
+                          g['status'] = 'danger';
+                        }
+                      } else if (name == 'methane' || name == 'ch4') {
+                        if (value <= 1000) {
+                          g['status'] = 'normal';
+                        } else if (value <= 4000) {
+                          g['status'] = 'warning';
+                        } else {
+                          g['status'] = 'danger';
+                        }
+                      } else if (name == 'so2') {
+                        if (value <= 1500) {
+                          g['status'] = 'normal';
+                        } else if (value <= 3000) {
+                          g['status'] = 'warning';
+                        } else {
+                          g['status'] = 'danger';
+                        }
+                      } else {
+                        g['status'] = g['status'] ?? 'normal';
                       }
                     }
 
@@ -745,13 +789,13 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
 
                   const SizedBox(height: 12),
 
-                  // ── VALUE (left)  +  PERCENTAGE (right) ──
+                  // ── PERCENTAGE VALUE ──
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        value != null ? '$value' : '--',
+                        percentage != null ? '$percentage' : '--',
                         style: TextStyle(
                           color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                           fontSize: 22,
@@ -762,23 +806,11 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        gc.unit,
+                        '%',
                         style: TextStyle(
                           color: isDark ? Colors.grey[400] : Colors.grey[500],
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const Spacer(),
-                      // ── Percentage ──
-                      Text(
-                        '${percentage ?? '--'}%',
-                        style: TextStyle(
-                          color: gc.color,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          height: 1,
                         ),
                       ),
                     ],
@@ -918,17 +950,30 @@ class _GasMonitorScreenState extends State<GasMonitorScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gc = _gasConfig(gasKey);
 
-    // Extract percentage history from logs
+    // Extract percentage history dynamically from logs to ensure total of all is 100%
     final List<FlSpot> spots = [];
+    final excludedKeys = ['temperature', 'humidity', 'time', 'sensortype', 'deviceid'];
     for (int i = 0; i < _allLogs.length; i++) {
       final log = _allLogs[i];
-      final gasData = log[gasKey];
-      double? pct;
-      if (gasData is Map) {
-        pct = double.tryParse(gasData['percentage']?.toString() ?? '');
+      double logTotal = 0.0;
+      double targetVal = 0.0;
+      for (final key in log.keys) {
+        if (excludedKeys.contains(key.toLowerCase())) continue;
+        final val = log[key];
+        if (val is Map) {
+          final m = Map<String, dynamic>.from(val);
+          if (m.containsKey('value')) {
+            final double v = double.tryParse(m['value']?.toString() ?? '0') ?? 0.0;
+            logTotal += v;
+            if (key == gasKey) {
+              targetVal = v;
+            }
+          }
+        }
       }
-      if (pct != null) {
-        spots.add(FlSpot(i.toDouble(), pct.clamp(0, 100)));
+      if (logTotal > 0) {
+        final double calculatedPct = (targetVal / logTotal) * 100.0;
+        spots.add(FlSpot(i.toDouble(), calculatedPct.clamp(0, 100)));
       }
     }
 

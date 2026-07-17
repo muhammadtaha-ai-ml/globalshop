@@ -66,7 +66,7 @@ class ProfileTab extends ConsumerWidget {
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                      colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -79,11 +79,11 @@ class ProfileTab extends ConsumerWidget {
                     ),
                     child: CircleAvatar(
                       radius: 56,
-                      backgroundColor: isDark ? const Color(0xFF1E2030) : const Color(0xFFF3E5F5),
+                      backgroundColor: isDark ? const Color(0xFF1E2030) : const Color(0xFFE3F2FD),
                       child: Text(
                         _getUserInitials(name),
                         style: TextStyle(
-                          color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF7E57C2),
+                          color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1E88E5),
                           fontSize: 36,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1,
@@ -110,17 +110,17 @@ class ProfileTab extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7E57C2).withOpacity(isDark ? 0.15 : 0.06),
+                    color: const Color(0xFF1E88E5).withOpacity(isDark ? 0.15 : 0.06),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFF7E57C2).withOpacity(isDark ? 0.4 : 0.15),
+                      color: const Color(0xFF1E88E5).withOpacity(isDark ? 0.4 : 0.15),
                       width: 1,
                     ),
                   ),
                   child: Text(
                     email,
                     style: TextStyle(
-                      color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF7E57C2),
+                      color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1E88E5),
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -137,7 +137,7 @@ class ProfileTab extends ConsumerWidget {
                         icon: Icons.devices_rounded,
                         value: activeDevicesCount.toString(),
                         label: "Active Monitors",
-                        color: const Color(0xFF7E57C2),
+                        color: const Color(0xFF1E88E5),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -162,7 +162,7 @@ class ProfileTab extends ConsumerWidget {
                       height: 18,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF7E57C2), Color(0xFF42A5F5)],
+                          colors: [Color(0xFF5B9BD5), Color(0xFF42A5F5)],
                         ),
                         borderRadius: BorderRadius.circular(2),
                       ),
@@ -186,7 +186,7 @@ class ProfileTab extends ConsumerWidget {
                   icon: Icons.person_outline_rounded,
                   label: "Full Name",
                   value: name,
-                  color: const Color(0xFF7E57C2),
+                  color: const Color(0xFF1E88E5),
                 ),
                 _buildInfoTile(
                   isDark: isDark,
@@ -392,7 +392,7 @@ class ProfileTab extends ConsumerWidget {
           ),
           if (onCopy != null)
             IconButton(
-              icon: Icon(Icons.copy_rounded, color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF7E57C2), size: 20),
+              icon: Icon(Icons.copy_rounded, color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1E88E5), size: 20),
               onPressed: onCopy,
             ),
         ],
